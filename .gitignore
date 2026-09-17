@@ -1,0 +1,38 @@
+# Expo
+.expo/
+dist/
+web-build/
+
+# Metro bundler
+.metro/
+
+# Dependencies
+node_modules/
+
+# TypeScript
+*.tsbuildinfo
+
+# Build outputs & Native directories
+ios/
+android/
+*.ios.*
+*.android.*
+
+# Development / Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# MacOS / System files
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
