@@ -1,0 +1,64 @@
+# Run right after Firebase Auth registration
+mutation CreateMyProfile(
+  $fullName: String!, $contactNumber: String!, $email: String!, $roleId: Int!
+) @auth(level: USER) {
+  user_insert(data: {
+    userId_expr: "auth.uid"
+    fullName: $fullName
+    contactNumber: $contactNumber
+    email: $email
+    roleRoleId: $roleId
+  })
+}
+
+# CREATE: customer places an order (status starts at 1 = pending)
+mutation CreateOrder(
+  $stationId: UUID!, $productId: UUID!, $gallons: Int!,
+  $lat: Float!, $lng: Float!, $time: Timestamp
+) @auth(level: USER) {
+  order_insert(data: {
+    customerUserId_expr: "auth.uid"
+    stationId: $stationId
+    productId: $productId
+    statusStatusId: 1
+    gallons: $gallons
+    deliveryLatitude: $lat
+    deliveryLongitude: $lng
+    preferredDeliveryTime: $time
+  })
+}
+
+# Simulated payment for an order
+mutation CreatePayment(
+  $orderId: UUID!, $amount: Float!, $method: String!
+) @auth(level: USER) {
+  payment_insert(data: {
+    orderId: $orderId
+    amount: $amount
+    paymentMethod: $method
+    paymentStatus: "paid"
+    paidAt_expr: "request.time"
+  })
+}
+
+# UPDATE: rider accepts an order (pending -> on the way)
+mutation AcceptOrder($id: UUID!) @auth(level: USER) {
+  order_update(id: $id, data: {
+    riderUserId_expr: "auth.uid"
+    statusStatusId: 2
+  })
+}
+
+# UPDATE: rider changes status (2 = on the way, 3 = delivered)
+mutation UpdateOrderStatus($id: UUID!, $statusId: Int!) @auth(level: USER) {
+  order_update(id: $id, data: { statusStatusId: $statusId })
+}
+
+# DELETE: customer cancels their own order, only while it is still pending
+mutation CancelOrder($id: UUID!) @auth(level: USER) {
+  order_deleteMany(where: {
+    id: { eq: $id }
+    customer: { userId: { eq_expr: "auth.uid" } }
+    status: { statusId: { eq: 1 } }
+  })
+}

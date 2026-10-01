@@ -1,0 +1,64 @@
+# Customer: pick a station and product on the order form
+query ListStations @auth(level: USER) {
+  stations(orderBy: { stationName: ASC }) {
+    id stationName address latitude longitude
+  }
+}
+
+query ListProducts @auth(level: USER) {
+  products(orderBy: { productName: ASC }) {
+    id productName unitPrice
+  }
+}
+
+# Current user's profile and role (decides customer tabs vs rider tabs)
+query GetMyProfile @auth(level: USER) {
+  user(key: { userId_expr: "auth.uid" }) {
+    userId fullName contactNumber email
+    role { roleId roleName }
+  }
+}
+
+# Rider: live list of orders waiting to be accepted
+query ListPendingOrders @auth(level: USER) {
+  orders(
+    where: { status: { statusId: { eq: 1 } } }
+    orderBy: { createdAt: DESC }
+  ) {
+    id gallons deliveryLatitude deliveryLongitude
+    preferredDeliveryTime createdAt
+    customer { fullName contactNumber }
+    station { stationName latitude longitude }
+    product { productName unitPrice }
+  }
+}
+
+# Rider: orders this rider accepted that are still active
+query ListMyDeliveries @auth(level: USER) {
+  orders(
+    where: {
+      rider: { userId: { eq_expr: "auth.uid" } }
+      status: { statusId: { in: [2] } }
+    }
+    orderBy: { createdAt: DESC }
+  ) {
+    id gallons deliveryLatitude deliveryLongitude createdAt
+    customer { fullName contactNumber }
+    station { latitude longitude }
+    status { statusName }
+  }
+}
+
+# Customer: the tracking screen (also used for polling status)
+query GetOrder($id: UUID!) @auth(level: USER) {
+  order(id: $id) {
+    id gallons deliveryLatitude deliveryLongitude createdAt
+    status { statusId statusName }
+    rider { fullName contactNumber }
+    product { productName unitPrice }
+    station { stationName latitude longitude }
+  }
+}
+
+# Customer: current user's orders still in progress
+query ListMyActiveOrders @auth(level: USER) {
