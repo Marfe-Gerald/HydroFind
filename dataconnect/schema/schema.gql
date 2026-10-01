@@ -1,0 +1,51 @@
+type Role @table(name: "roles", key: "roleId") {
+  roleId: Int!
+  roleName: String!
+}
+
+type OrderStatus @table(name: "order_status", key: "statusId") {
+  statusId: Int!
+  statusName: String!
+}
+
+type User @table(name: "users", key: "userId") {
+  userId: String! @default(expr: "auth.uid")
+  fullName: String!
+  contactNumber: String!
+  email: String!
+  role: Role!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type Station @table(name: "stations") {
+  stationName: String!
+  address: String!
+  latitude: Float!
+  longitude: Float!
+}
+
+type Product @table(name: "products") {
+  productName: String!
+  unitPrice: Float!
+}
+
+type Order @table(name: "orders") {
+  customer: User!
+  rider: User
+  station: Station!
+  product: Product!
+  status: OrderStatus!
+  gallons: Int!
+  deliveryLatitude: Float!
+  deliveryLongitude: Float!
+  preferredDeliveryTime: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type Payment @table(name: "payments") {
+  order: Order! @unique
+  amount: Float!
+  paymentMethod: String!
+  paymentStatus: String!
+  paidAt: Timestamp
+}
