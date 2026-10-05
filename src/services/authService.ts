@@ -4,7 +4,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { auth, db } from '../../server/src/firebase';
 
 export async function register(
   email: string,

@@ -13,7 +13,7 @@ import {
 import {
   doc, setDoc, getDoc, addDoc, collection, serverTimestamp,
 } from 'firebase/firestore';
-import { auth, db } from './src/services/firebase';
+import { auth, db } from './server/src/firebase';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);

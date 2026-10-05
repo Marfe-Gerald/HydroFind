@@ -2,7 +2,7 @@ import {
   addDoc, collection, deleteDoc, doc, onSnapshot,
   orderBy, query, serverTimestamp, updateDoc, where,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db } from '../../server/src/firebase';
 
 // CREATE
 export async function createOrder(data: {
