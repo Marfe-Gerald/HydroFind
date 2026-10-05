@@ -3,23 +3,19 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../../server/src/firebase';
+import { auth } from './firebase';
+import { api } from './api';
 
 export async function register(
   email: string,
   password: string,
   fullName: string,
-  contactNumber: string,
-  role: 'customer' | 'rider' = 'customer'
+  contactNumber: string
 ) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
-  await setDoc(doc(db, 'users', cred.user.uid), {
-    fullName,
-    contactNumber,
-    email,
-    role,
-    createdAt: serverTimestamp(),
+  await api('/users/me', {
+    method: 'POST',
+    body: JSON.stringify({ fullName, contactNumber, email }),
   });
   return cred.user;
 }
@@ -29,7 +25,4 @@ export const login = (email: string, password: string) =>
 
 export const logout = () => signOut(auth);
 
-export async function getUserProfile(uid: string) {
-  const snap = await getDoc(doc(db, 'users', uid));
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-}
+export const getUserProfile = () => api('/users/me');

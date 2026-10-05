@@ -1,16 +1,8 @@
-import React, { createContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '../../server/src/firebase';
+import React, { createContext, useEffect, useState, type ReactNode } from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { auth } from '../services/firebase';
 import { getUserProfile } from '../services/authService';
-import {Profile } from '../types/index';
-
-// export type Profile = {
-//   id: string;
-//   fullName: string;
-//   contactNumber: string;
-//   email: string;
-//   role: 'customer' | 'rider';
-// };
+import type { Profile } from '../types';
 
 type AuthContextType = {
   user: User | null;
@@ -32,14 +24,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+
       if (firebaseUser) {
-        const p = await getUserProfile(firebaseUser.uid);
-        setProfile(p as Profile | null);
+        try {
+          const p = await getUserProfile();
+          setProfile(p as Profile | null);
+        } catch (error: any) {
+          if (error?.message?.includes('404')) {
+            setProfile(null);
+          } else {
+            setProfile(null);
+          }
+        }
       } else {
         setProfile(null);
       }
+
       setLoading(false);
     });
+
     return unsubscribe;
   }, []);
 

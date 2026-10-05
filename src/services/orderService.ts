@@ -1,85 +1,14 @@
-import {
-  addDoc, collection, deleteDoc, doc, onSnapshot,
-  orderBy, query, serverTimestamp, updateDoc, where,
-} from 'firebase/firestore';
-import { db } from '../../server/src/firebase';
+import { api } from './api';
 
-// CREATE
-export async function createOrder(data: {
-  customerId: string;
-  customerName: string;
-  contactNumber: string;
-  stationId: string;
-  productName: string;
-  unitPrice: number;
-  gallons: number;
-  location: { latitude: number; longitude: number };
-  paymentMethod: string;
-}) {
-  return addDoc(collection(db, 'orders'), {
-    ...data,
-    totalAmount: data.unitPrice * data.gallons,
-    riderId: null,
-    riderName: null,
-    status: 'pending',
-    paymentStatus: 'paid', // simulated
-    createdAt: serverTimestamp(),
-    acceptedAt: null,
-    deliveredAt: null,
-  });
-}
+export const createOrder = (body: object) => api('/orders', {
+  method: 'POST',
+  body: JSON.stringify(body),
+});
 
-// READ (rider: live pending orders)
-export function listenPendingOrders(cb: (orders: any[]) => void) {
-  const q = query(
-    collection(db, 'orders'),
-    where('status', '==', 'pending'),
-    orderBy('createdAt', 'desc')
-  );
-  return onSnapshot(q, (snap) =>
-    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-  );
-}
-
-// READ (customer: own orders / history)
-export function listenCustomerOrders(uid: string, cb: (orders: any[]) => void) {
-  const q = query(
-    collection(db, 'orders'),
-    where('customerId', '==', uid),
-    orderBy('createdAt', 'desc')
-  );
-  return onSnapshot(q, (snap) =>
-    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-  );
-}
-
-// READ (customer: one order's live status)
-export function listenOrder(orderId: string, cb: (order: any) => void) {
-  return onSnapshot(doc(db, 'orders', orderId), (d) =>
-    cb(d.exists() ? { id: d.id, ...d.data() } : null)
-  );
-}
-
-// UPDATE (rider accepts)
-export const acceptOrder = (orderId: string, riderId: string, riderName: string) =>
-  updateDoc(doc(db, 'orders', orderId), {
-    status: 'on_the_way',
-    riderId,
-    riderName,
-    acceptedAt: serverTimestamp(),
-  });
-
-// UPDATE (rider delivers)
-export const markDelivered = (orderId: string) =>
-  updateDoc(doc(db, 'orders', orderId), {
-    status: 'delivered',
-    deliveredAt: serverTimestamp(),
-  });
-
-// UPDATE (cancel, keeps it in history)
-export const cancelOrder = (orderId: string) =>
-  updateDoc(doc(db, 'orders', orderId), { status: 'cancelled' });
-
-// DELETE (pending only)
-export const deletePendingOrder = (orderId: string) =>
-  deleteDoc(doc(db, 'orders', orderId));
+export const getPendingOrders = () => api('/orders/pending');
+export const getMyOrders = () => api('/orders/mine');
+export const getOrder = (id: string) => api(`/orders/${id}`);
+export const acceptOrder = (id: string) => api(`/orders/${id}/accept`, { method: 'PATCH' });
+export const deliverOrder = (id: string) => api(`/orders/${id}/deliver`, { method: 'PATCH' });
+export const cancelOrder = (id: string) => api(`/orders/${id}/cancel`, { method: 'PATCH' });
+export const deleteOrder = (id: string) => api(`/orders/${id}`, { method: 'DELETE' });
