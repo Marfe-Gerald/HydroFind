@@ -32,6 +32,8 @@ yarn-error.*
 
 # local env filesgit 
 .env*.local
+.env.example
+
 
 # typescript
 *.tsbuildinfo
