@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { AuthProvider } from './src/context/AuthContext';
+import { AuthProvider } from './src/context/authContext';
 import { useAuth } from './src/hooks/useAuth';
 
 function AppContent() {
