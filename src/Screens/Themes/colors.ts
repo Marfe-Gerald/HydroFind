@@ -20,8 +20,26 @@ export const COLORS = {
   borderLight: '#E2E8F0',
   borderDivider: '#CBD5E0',
   borderInvalid: '#FCA5A5',
-
+}
+export const colors = {
   // Transparent / Utility
   whiteOverlay: 'rgba(255, 255, 255, 0.2)',
   whiteOpacity80: 'rgba(255, 255, 255, 0.8)',
+  // Brand & Primary Colors
+  primaryBlue: '#2C57E8',
+  lightBackground: '#FFFFFF',
+  
+  // Text Colors
+  textHeader: '#0F1E36',
+  textSubHeader: '#4A5D75',
+  
+  // Validation / Error Colors
+  borderInvalid: '#FA9D9D',
+  textError: '#EE3333',
+  
+  // UI & Utility Colors
+  buttonShadow: '#DDE6F8',
+  iconColor: '#95A1B0',
+  inputBorder: '#E2E8F0',
+  errorBackground: '#FFF1F1',
 };

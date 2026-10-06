@@ -30,8 +30,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env filesgit 
 .env*.local
+.env.example
+
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +41,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+.env
+server/.env
+server/serviceAccountKey.json
+server/node_modules
+
+HydroFind_Express_Integration_Notes.md
+HydroFind_Express_Changes.md

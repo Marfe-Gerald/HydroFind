@@ -133,6 +133,15 @@ Real-time push notifications
 User authentication/login system
 Web-based administration system
 
+## Running locally
 
+1. Start the API server:
+   `cd server`
+   `npm run dev`
+2. Set `EXPO_PUBLIC_API_URL` in your Expo app environment to your LAN IP, for example `http://192.168.1.10:3000`.
+3. Start the app:
+   `npx expo start -c`
+
+The Expo app talks to the Express API using Firebase Auth tokens for authenticated requests.
 
 
