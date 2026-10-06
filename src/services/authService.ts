@@ -10,12 +10,14 @@ export async function register(
   email: string,
   password: string,
   fullName: string,
-  contactNumber: string
+  contactNumber: string,
+  role: 'customer' | 'driver' = 'customer'
 ) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   await api('/users/me', {
     method: 'POST',
-    body: JSON.stringify({ fullName, contactNumber, email }),
+    // the app says 'driver', the database calls it 'rider'
+    body: JSON.stringify({ fullName, contactNumber, email, role: role === 'driver' ? 'rider' : 'customer' }),
   });
   return cred.user;
 }

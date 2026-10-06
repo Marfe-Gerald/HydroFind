@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Text, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthInput, AuthButton } from './Components/AuthComponents';
 import { COLORS } from './Themes/colors';
 import { useRegister } from '../hooks/useRegister';
 import { useLogin } from '../hooks/useLogin';
+import { useAuth } from '../hooks/useAuth';
 
 export const CustomerAuth = () => {
   const [isSignUp, setIsSignUp] = useState(true);
@@ -17,6 +19,7 @@ export const CustomerAuth = () => {
 
   const { signUp, loading: registering, error: registerError } = useRegister();
   const { signIn, loading: loggingIn, error: loginError } = useLogin();
+  const { refreshProfile } = useAuth();
   const busy = registering || loggingIn;
   const error = isSignUp ? registerError : loginError;
 
@@ -29,8 +32,8 @@ export const CustomerAuth = () => {
           return;
         }
         // Firebase Auth creates the user, then POST /api/users/me saves the profile via Express
-        await signUp(email.trim(), password, name.trim(), contactNumber.trim());
-        Alert.alert('Success', 'Account created!');
+        await signUp(email.trim(), password, name.trim(), contactNumber.trim(), userRole);
+        await refreshProfile();
       } else {
         await signIn(email.trim(), password);
       }

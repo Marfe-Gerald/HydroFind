@@ -31,7 +31,7 @@ export default function OrderCard({ order, onPress }: OrderCardProps) {
       </View>
 
       <Text style={styles.meta}>
-        {order.gallons} gal · {order.time}
+        {/* {order.gallons} gal · {order.time} */}
       </Text>
     </TouchableOpacity>
   );

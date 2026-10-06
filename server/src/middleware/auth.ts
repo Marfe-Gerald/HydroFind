@@ -11,14 +11,23 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'Missing token' });
 
+  let uid: string;
   try {
-    const decoded = await adminAuth.verifyIdToken(token);
-    req.uid = decoded.uid;
-    const snap = await db.doc(`users/${decoded.uid}`).get();
+    uid = (await adminAuth.verifyIdToken(token)).uid;
+  } catch (e) {
+    console.error('verifyIdToken failed:', e);
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  try {
+    req.uid = uid;
+    const snap = await db.doc(`users/${uid}`).get();
     req.role = snap.data()?.role;
     next();
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
+  } catch (e) {
+    // Firestore problem (credentials, database not created, etc.) - not a token problem
+    console.error('Firestore read failed:', e);
+    res.status(500).json({ error: 'Database error - check server logs' });
   }
 }
 

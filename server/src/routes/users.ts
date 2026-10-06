@@ -5,17 +5,22 @@ import { requireAuth, AuthedRequest } from '../middleware/auth';
 const r = Router();
 
 r.post('/me', requireAuth, async (req: AuthedRequest, res) => {
-  const { fullName, contactNumber, email } = req.body;
+  const { fullName, contactNumber, email, role } = req.body;
   if (!fullName || !contactNumber) return res.status(400).json({ error: 'Missing fields' });
 
-  await db.doc(`users/${req.uid}`).set({
-    fullName,
-    contactNumber,
-    email,
-    role: 'customer',
-    createdAt: FieldValue.serverTimestamp(),
-  });
-  res.status(201).json({ id: req.uid });
+  try {
+    await db.doc(`users/${req.uid}`).set({
+      fullName,
+      contactNumber,
+      email,
+      role: role === 'rider' ? 'rider' : 'customer',
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    res.status(201).json({ id: req.uid });
+  } catch (e) {
+    console.error('Failed to save profile:', e);
+    res.status(500).json({ error: 'Could not save profile - check server logs' });
+  }
 });
 
 r.get('/me', requireAuth, async (req: AuthedRequest, res) => {

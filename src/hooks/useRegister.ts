@@ -5,11 +5,17 @@ export function useRegister() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const signUp = async (email: string, password: string, fullName: string, contactNumber: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    contactNumber: string,
+    role: 'customer' | 'driver' = 'customer'
+  ) => {
     setLoading(true);
     setError(null);
     try {
-      return await register(email, password, fullName, contactNumber);
+      return await register(email, password, fullName, contactNumber, role);
     } catch (e: any) {
       setError(e.message ?? 'Registration failed');
       throw e;
