@@ -5,9 +5,9 @@ export type OrderStatus = 'Pending' | 'On the Way' | 'Delivered';
 export interface Order {
   id: string;
   customerName: string;
-  status: OrderStatus;
   gallons: number;
-  time: string;
-  /** 0 to 1 — how far along the delivery is, used for the progress bar */
-  progress: number;
+  preferredTime: string;
+  address: string;
+  status: OrderStatus;
+  progress: number; // 0 to 100, used by OrderCard's progress bar
 }
