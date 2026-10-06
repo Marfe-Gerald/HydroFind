@@ -1,22 +1,41 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { Text, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { AuthInput, AuthButton } from './Components/AuthComponents';
 import { COLORS } from './Themes/colors';
+import { useRegister } from '../hooks/useRegister';
+import { useLogin } from '../hooks/useLogin';
 
 export const CustomerAuth = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true);
 
   const [userRole, setUserRole] = useState<'customer' | 'driver'>('customer');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
 
-  const handleSubmit = () => {
-    if (isSignUp) {
-      console.log(`Registering ${userRole}:`, { name, email, password });
-    } else {
-      console.log(`Logging in ${userRole}:`, { email, password });
+  const { signUp, loading: registering, error: registerError } = useRegister();
+  const { signIn, loading: loggingIn, error: loginError } = useLogin();
+  const busy = registering || loggingIn;
+  const error = isSignUp ? registerError : loginError;
+
+  const handleSubmit = async () => {
+    if (busy) return;
+    try {
+      if (isSignUp) {
+        if (!name.trim() || !contactNumber.trim() || !email.trim() || !password) {
+          Alert.alert('Missing fields', 'Please fill in all fields.');
+          return;
+        }
+        // Firebase Auth creates the user, then POST /api/users/me saves the profile via Express
+        await signUp(email.trim(), password, name.trim(), contactNumber.trim());
+        Alert.alert('Success', 'Account created!');
+      } else {
+        await signIn(email.trim(), password);
+      }
+    } catch {
+      // error message is exposed by the hooks and shown below
     }
   };
 
@@ -37,6 +56,16 @@ export const CustomerAuth = () => {
           />
         )}
 
+        {isSignUp && (
+          <AuthInput
+            label="Contact Number"
+            placeholder="09XXXXXXXXX"
+            keyboardType="phone-pad"
+            value={contactNumber}
+            onChangeText={setContactNumber}
+          />
+        )}
+
         <AuthInput
           label="Email Address"
           placeholder={userRole === 'customer' ? 'customer@example.com' : 'driver@example.com'}
@@ -54,8 +83,10 @@ export const CustomerAuth = () => {
           onChangeText={setPassword}
         />
 
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
         <AuthButton
-          title={isSignUp ? 'Create Account' : 'Log In'}
+          title={busy ? 'Please wait...' : isSignUp ? 'Create Account' : 'Log In'}
           onPress={handleSubmit}
         />
 
@@ -99,6 +130,7 @@ const styles = StyleSheet.create({
   },
   error: {
     color: COLORS.textError,
-    borderColor: COLORS.borderInvalid,
+    marginBottom: 8,
+    textAlign: 'center',
   },
 });
