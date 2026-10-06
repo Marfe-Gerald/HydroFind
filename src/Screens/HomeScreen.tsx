@@ -9,8 +9,6 @@ import {
   StatusBar,
   SafeAreaView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
 import { colors, spacing, radius } from './Themes/colors';
 import { MOCK_OVERVIEW } from './Data/MockOrders';
 import PrimaryButton from './Components/PrimaryButton';
@@ -42,7 +40,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Text style={styles.headerSubtitle}>Water refill delivery, made simple</Text>
         </View>
         <View style={styles.roleChip}>
-          <Ionicons name="person-circle-outline" size={18} color={colors.white} />
+          <Text style={styles.roleIcon}>●</Text>
           <Text style={styles.roleChipText}>Customer</Text>
         </View>
       </View>
@@ -118,6 +116,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
+  },
+  roleIcon: {
+    color: colors.white,
+    fontSize: 18,
+    lineHeight: 18,
   },
   body: {
     flex: 1,
