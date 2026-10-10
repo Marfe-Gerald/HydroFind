@@ -3,10 +3,10 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../hooks/useAuth';
 import { logout } from '../services/authService';
-import { CustomerAuth } from '../screens/Customer-Driver-Login-Signup';
-import HomeScreen from '../screens/HomeScreen';
-import DriverDashboard from '../screens/Driver/Driver-Dashboard';
-import { COLORS } from '../screens/Themes/colors';
+import { CustomerAuth } from '../Screens/Customer-Driver-Login-Signup';
+import HomeScreen from '../Screens/HomeScreen';
+import DriverDashboard from '../Screens/Driver/Driver-Dashboard';
+import { COLORS } from '../Screens/Themes/colors';
 
 export default function RootNavigator() {
   const { user, profile, loading } = useAuth();

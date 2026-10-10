@@ -10,4 +10,7 @@ export interface Order {
   address: string;
   status: OrderStatus;
   progress: number; // 0 to 100, used by OrderCard's progress bar
+  latitude?: number;
+  longitude?: number;
+  
 }
