@@ -17,6 +17,8 @@ export const MOCK_OVERVIEW = [
     address: '123 Sampaguita St., Brgy. Bagong Ilog, Pasig City',
     status: 'Pending',
     progress: 10,
+    latitude: 14.5764,
+    longitude: 121.0851,
   },
   {
     id: '2',
