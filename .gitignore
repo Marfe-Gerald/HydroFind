@@ -34,7 +34,9 @@ yarn-error.*
 .env*.local
 .env.example
 .env
-
+.env
+ 
+D:\Projects\Programming Langauges - CS 15\HydroFindApp\.env
 # typescript
 *.tsbuildinfo
     
@@ -49,3 +51,5 @@ server/node_modules
 
 HydroFind_Express_Integration_Notes.md
 HydroFind_Express_Changes.md
+
+.idea

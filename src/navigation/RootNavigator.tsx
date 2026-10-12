@@ -9,7 +9,7 @@ import DriverDashboard from '../screens/Driver/Driver-Dashboard';
 import { COLORS } from '../screens/Themes/colors';
 
 export default function RootNavigator() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileError, registering, refreshProfile } = useAuth();
 
   // Checking saved session / loading profile
   if (loading) {
@@ -21,14 +21,17 @@ export default function RootNavigator() {
   }
 
   // Not signed in -> signup / login
-  if (!user) return <CustomerAuth />;
+  // (also stay on the signup screen while the account is being created)
+  if (!user || registering) return <CustomerAuth />;
 
-  // Signed in, but profile not loaded (e.g. server offline or still being created)
+  // Signed in, but profile not loaded (server offline, wrong URL, or no profile yet)
   if (!profile) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primaryBlue} />
-        <Text style={styles.note}>Loading your profile...</Text>
+        <Text style={styles.note}>{profileError ?? 'Could not load your profile.'}</Text>
+        <TouchableOpacity onPress={refreshProfile}>
+          <Text style={styles.link}>Retry</Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={logout}>
           <Text style={styles.link}>Log out</Text>
         </TouchableOpacity>
