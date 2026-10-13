@@ -1,20 +1,29 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useOrders<T = any>(fetcher: () => Promise<T[]>, intervalMs = 7000) {
   const [orders, setOrders] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetcherRef = useRef(fetcher);
+
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  }, [fetcher]);
 
   const refresh = useCallback(async () => {
     try {
-      setOrders(await fetcher());
+      const result = await fetcherRef.current();
+      if (!Array.isArray(result)) {
+        throw new TypeError('Orders response must be an array.');
+      }
+      setOrders(result);
       setError(null);
     } catch (e: any) {
-      setError(e.message);
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [fetcher]);
+  }, []);
 
   useEffect(() => {
     let active = true;
