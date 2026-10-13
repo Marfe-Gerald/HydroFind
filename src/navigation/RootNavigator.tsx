@@ -1,17 +1,17 @@
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { logout } from '../services/authService';
 import { CustomerAuth } from '../screens/Customer-Driver-Login-Signup';
-import HomeScreen from '../screens/HomeScreen';
-import DriverDashboard from '../screens/Driver/Driver-Dashboard';
+import CustomerNavigator from './CustomerNavigator';
+import DriverNavigator from './DriverNavigator';
 import { COLORS } from '../screens/Themes/colors';
 
 export default function RootNavigator() {
   const { user, profile, loading, profileError, registering, refreshProfile } = useAuth();
 
-  // Checking saved session / loading profile
   if (loading) {
     return (
       <View style={styles.center}>
@@ -20,11 +20,8 @@ export default function RootNavigator() {
     );
   }
 
-  // Not signed in -> signup / login
-  // (also stay on the signup screen while the account is being created)
   if (!user || registering) return <CustomerAuth />;
 
-  // Signed in, but profile not loaded (server offline, wrong URL, or no profile yet)
   if (!profile) {
     return (
       <View style={styles.center}>
@@ -39,10 +36,11 @@ export default function RootNavigator() {
     );
   }
 
-  // Signed in -> screen depends on role stored in Firestore
   return (
     <View style={styles.flex}>
-      {profile.role === 'rider' ? <DriverDashboard role="driver" /> : <HomeScreen />}
+      <NavigationContainer>
+        {profile.role === 'rider' ? <DriverNavigator /> : <CustomerNavigator />}
+      </NavigationContainer>
       <SafeAreaView edges={['bottom']} style={styles.logoutBar}>
         <TouchableOpacity onPress={logout}>
           <Text style={styles.link}>Log out ({profile.fullName})</Text>

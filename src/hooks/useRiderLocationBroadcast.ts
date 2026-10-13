@@ -10,7 +10,8 @@ export function useRiderLocationBroadcast(orderId: string | null, enabled: boole
 
   useEffect(() => {
     if (!orderId || !enabled) {
-      setError(null);
+      const reset = () => setError(null);
+      void reset();
       return;
     }
 

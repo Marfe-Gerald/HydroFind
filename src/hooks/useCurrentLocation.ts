@@ -27,7 +27,18 @@ export function useCurrentLocation() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    let cancelled = false;
+    const run = async () => {
+      const result = await refresh();
+      if (cancelled) return;
+      if (result) {
+        setCoords(result);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [refresh]);
 
   return { coords, address, loading, error, refresh };

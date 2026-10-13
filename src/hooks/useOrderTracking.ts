@@ -8,7 +8,8 @@ export function useOrderTracking(orderId: string | null, intervalMs = 5000) {
 
   useEffect(() => {
     if (!orderId) {
-      setTracking(null);
+      const clear = () => setTracking(null);
+      void clear();
       return;
     }
 
@@ -27,7 +28,9 @@ export function useOrderTracking(orderId: string | null, intervalMs = 5000) {
       }
     };
 
-    id = setInterval(tick, intervalMs);
+    id = setInterval(() => {
+      void tick();
+    }, intervalMs);
     void tick();
 
     return () => {

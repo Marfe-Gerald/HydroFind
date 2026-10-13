@@ -17,9 +17,19 @@ export function useOrders<T = any>(fetcher: () => Promise<T[]>, intervalMs = 700
   }, [fetcher]);
 
   useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, intervalMs);
-    return () => clearInterval(id);
+    let active = true;
+    const run = async () => {
+      await refresh();
+      if (!active) return;
+    };
+    void run();
+    const id = setInterval(() => {
+      void refresh();
+    }, intervalMs);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
   }, [refresh, intervalMs]);
 
   return { orders, loading, error, refresh };

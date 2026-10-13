@@ -20,6 +20,7 @@ import type { Order } from '../Types/Orders';
 
 interface MapViewScreenProps {
   order?: Order | null;
+  riderLocation?: Coord | null;
   navigation?: {
     navigate: (screen: string, params?: { id: string }) => void;
     goBack?: () => void;
