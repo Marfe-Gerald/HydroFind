@@ -1,147 +1,99 @@
-# HydroFind
+﻿# HydroFind
 
-Project Description
+HydroFind is a mobile ordering and delivery app for water refill services. Customers can place refill requests, share their location, and track delivery progress. Riders and staff can accept, route, and complete orders from a mobile dashboard.
 
-HydroFind is a React Native mobile application designed to connect water refilling stations with their customers through real-time location tracking and route optimization. The application addresses a common problem faced by water refilling businesses: inefficient delivery coordination caused by manually estimating customer locations and delivery routes, which often leads to delayed deliveries, wasted fuel, and poor customer experience.
+## Stack
 
-The application allows customers to place water refill orders and share their location, while allowing the business to view incoming orders, see each customer's location on a map, and manage delivery records. Business owners or riders can track order status from pending to delivered, ensuring smoother coordination between the station and its customers.
+- Frontend: Expo + React Native + TypeScript
+- Navigation: React Navigation with native stack + bottom tabs
+- Auth: Firebase Authentication
+- Backend: Express API in `server/`
+- Database: Firebase Firestore via Firebase Admin SDK
+- Location: Expo Location + Leaflet map view
 
-Team Members
+## Core features
 
+- Customer signup/login and rider signup with a shared rider code
+- Place orders with address and preferred delivery time
+- View pending, assigned, and historical orders
+- Rider accept/deliver/cancel flows
+- Map and tracking data from the station to the customer and live rider position
+- Server-side validation and Firestore access through Express
 
-Name                                Role
-Marfe, Gerald M.                    Developer/Backend
-Juson, Jann Francis M.              Developer/Frontend
+## Route map
 
+Customer app:
+- Home
+- PlaceOrder
+- ViewOrders
+- MapView
+- History
+- OrderDetails
 
+Rider app:
+- Home
+- ViewOrders
+- MapView
+- History
+- OrderDetails
 
-Target Users
+## API overview
 
-Customers (residents ordering water refills)
-Water refilling station owners/staff
-Delivery riders
+The app talks to the Express API at `/api` with Firebase ID tokens attached. Main flows include:
 
-Objectives
-To develop a mobile application using React Native for water refill ordering and delivery management.
-To implement location tracking that captures and displays the customer's address for delivery coordination.
-To implement CRUD operations for managing orders, customers, and delivery records using SQLite.
-To design a route/map feature that shows the path from the business to the customer's location.
-To provide a user-friendly interface for placing orders and tracking delivery status.
+- `POST /api/users/me` — create or fetch the signed-in profile
+- `GET /api/orders/mine` — customer order list
+- `GET /api/orders/pending` — pending rider-visible orders
+- `GET /api/orders/assigned` — rider-assigned order list
+- `GET /api/orders/history` — delivery history
+- `POST /api/orders` — create an order
+- `PATCH /api/orders/:id/accept` — rider accepts an order
+- `PATCH /api/orders/:id/deliver` — rider marks it delivered
+- `PATCH /api/orders/:id/cancel` — cancel while pending
+- `GET /api/orders/:id/tracking` — live tracking payload
+- `PATCH /api/orders/:id/location` — customer updates order location
+- `PUT /api/orders/:id/rider-location` — rider pushes live GPS position
 
-Major Features
+## Environment setup
 
-Add a new water refill order
-View all orders
-Edit/update order details or status
-Delete/cancel an order
-Search for orders by customer name or status
-View customer location on a map
-View shortest route from business to customer
-View order/delivery history
+Create a root `.env` file from the example and add your app config values:
 
-Proposed Screens
+```bash
+cp .env.example .env
+```
 
+The app expects Firebase values such as:
 
-Screens
-Purpose
-Home
-Displays dashboard with quick order access
-Order Form
-Allows customer to place a new water refill order
-Order List
-Displays all orders (pending, on the way, delivered)
-Order Details
-Displays selected order's full information
-Map View
-Displays customer location and route from the business
-Edit Order
-Updates order/delivery status
-History
-Displays past completed orders
+- `EXPO_PUBLIC_FIREBASE_API_KEY`
+- `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `EXPO_PUBLIC_FIREBASE_PROJECT_ID`
+- `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `EXPO_PUBLIC_FIREBASE_APP_ID`
+- `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID`
+- `EXPO_PUBLIC_API_URL=http://<your-lan-ip>:3000`
 
-
-
-
-
-Proposed Transaction
-
-Transaction: Placing and Managing a Water Refill Order
-
-The customer enters order details — name, contact number, address/location (auto-captured via GPS), number of water containers/gallons needed, and preferred delivery time. Once submitted, this information is stored in the database as a new order record with a "Pending" status. The business/rider can then view this order, see the customer's location plotted on a map along with the suggested route, and update the order status as it progresses (Pending → On the Way → Delivered). All order information, including status changes, is saved and can be viewed later in the order history.
-
-Proposed Database 
-
-FIRESTORE
-
-CRUD Plan
-
-Operation
- Proposed Function
-CREATE
- Add a new water refill order
-READ
- View all orders / view order details
-UPDATE
- Edit order details or update delivery status
-DELETE
- Cancel/remove an order
-
-
-
-Technology Stack
-
-Frontend: React Native (Expo)
-Language: JavaScript
-Navigation: React Navigation
-Database: Firebase Firestore (cloud, real-time)
-Maps/Location: React Native Maps, Expo Location
-Auth: Firebase Authentication - “Log in/Sign up for Target Users”
-Dev Tools: VS Code, GitHub, Android Emulator / physical device
-
-
-Proposed App Architecture / Flow
-- - - - - > PLACE ORDER SCREEN - - - - > ORDER LIST SCREEN                                      
-|                                                             - - - - - - >  MAP VIEW SCREEN
-|                                                             |
-HOME SCREEN - - - - >  ORDER LIST SCREEN  - - - - - > ORDER DETAILS SCREEN
-|                                                             |
-|                                                             - - - - - - > EDIT ORDER STATUS
-- - - - - >  HISTORY SCREEN - - - - > VIEW COMPLETED ORDERS 
-
-
-UI/UX Concept
-Primary Colors: Shades of blue and white (representing water/cleanliness), with a light gray accent for backgrounds
-App Logo Concept: A simple water droplet icon combined with a location pin
-Typography: Clean, sans-serif font (e.g., Roboto or Poppins) for readability
-General Layout: Card-based layout for orders, bottom tab navigation for main sections (Home, Orders, Map, History)
-Navigation Style: Bottom tab navigation combined with stack navigation for screen transitions
-Expected Output
-At the end of the project, the team expects to produce a functional React Native mobile application that allows customers to place water refill orders and allows the business to manage and track deliveries. The application will use SQLite to store order data and will support create, read, update, and delete operations, along with a map feature displaying customer location and delivery route.
-
-Proposed Project Scope
-Included:
-Order placement and management
-Customer location capture and map display
-Route/path display from business to customer
-CRUD operations
-SQLite database
-Order status tracking
-Multi-screen navigation
-Not Included:
-Real online payment gateway integration (in-app purchases will be simulated for demo purposes)
-Real-time push notifications
-User authentication/login system
-Web-based administration system
+The server also uses `server/.env` for backend-only values, including `RIDER_SIGNUP_CODE`.
 
 ## Running locally
 
-1. Start the API server:
-   `cd server`
-   `npm run dev`
-2. Set `EXPO_PUBLIC_API_URL` in your Expo app environment to your LAN IP, for example `http://192.168.1.10:3000`.
-3. Start the app:
-   `npx expo start -c`
+1. Copy the server env example if needed:
+   ```bash
+   cp server/.env.example server/.env
+   ```
+2. Start the API server:
+   ```bash
+   cd server
+   npm run dev
+   ```
+3. Start the Expo app:
+   ```bash
+   npx expo start -c
+   ```
+4. On a device or emulator, use the local LAN IP configured in `EXPO_PUBLIC_API_URL`.
 
-The Expo app talks to the Express API using Firebase Auth tokens for authenticated requests.
+## Notes
 
-
+- Do not commit `.env` files or Firebase service account keys.
+- The project uses Firestore via the Express server rather than direct client-side Firestore access.
+- `HydroFind_Express_Integration_Notes.md` was updated to match the real repo state rather than the earlier planning assumptions.
