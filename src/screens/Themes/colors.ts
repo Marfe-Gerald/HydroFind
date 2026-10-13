@@ -44,6 +44,8 @@ export const colors = {
   onTheWayText: '#1565D8',
   deliveredBg: '#E4F7EC',
   deliveredText: '#1E9E5A',
+  cancelledBg: '#FBE9E9',
+  cancelledText: '#C33E3E',
 };
 
 export const spacing = {

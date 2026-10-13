@@ -7,6 +7,8 @@ export const createOrder = (body: object) => api('/orders', {
 
 export const getPendingOrders = () => api('/orders/pending');
 export const getMyOrders = () => api('/orders/mine');
+export const getAssignedOrders = () => api('/orders/assigned');
+export const getHistory = () => api('/orders/history');
 export const getOrder = (id: string) => api(`/orders/${id}`);
 export const acceptOrder = (id: string) => api(`/orders/${id}/accept`, { method: 'PATCH' });
 export const deliverOrder = (id: string) => api(`/orders/${id}/deliver`, { method: 'PATCH' });

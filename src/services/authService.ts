@@ -12,7 +12,8 @@ export async function register(
   password: string,
   fullName: string,
   contactNumber: string,
-  role: 'customer' | 'driver' = 'customer'
+  role: 'customer' | 'driver' = 'customer',
+  riderCode?: string
 ) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   try {
@@ -24,6 +25,7 @@ export async function register(
         contactNumber,
         email,
         role: role === 'driver' ? 'rider' : 'customer',
+        riderCode,
       }),
     });
   } catch (err) {

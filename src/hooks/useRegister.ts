@@ -10,12 +10,13 @@ export function useRegister() {
     password: string,
     fullName: string,
     contactNumber: string,
-    role: 'customer' | 'driver' = 'customer'
+    role: 'customer' | 'driver' = 'customer',
+    riderCode?: string
   ) => {
     setLoading(true);
     setError(null);
     try {
-      return await register(email, password, fullName, contactNumber, role);
+      return await register(email, password, fullName, contactNumber, role, riderCode);
     } catch (e: any) {
       setError(e.message ?? 'Registration failed');
       throw e;
