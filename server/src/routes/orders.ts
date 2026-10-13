@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { db, FieldValue, Timestamp } from '../firebase';
 import { requireAuth, requireRole, AuthedRequest } from '../middleware/auth';
+import { STATION, AVG_SPEED_KMH, MIN_PUSH_INTERVAL_MS } from '../config';
+import { isCoord, distanceKm, etaMinutes } from '../utils/geo';
 
 const r = Router();
 r.use(requireAuth);
@@ -13,18 +15,7 @@ const toJson = (v: any): any => {
   return v;
 };
 const serialize = (d: FirebaseFirestore.DocumentSnapshot) => ({ id: d.id, ...toJson(d.data()) });
-const isCoord = (value: unknown): value is { latitude: number; longitude: number } => {
-  if (!value || typeof value !== 'object') return false;
-  const c = value as Record<string, unknown>;
-  return (
-    typeof c.latitude === 'number' &&
-    typeof c.longitude === 'number' &&
-    Number.isFinite(c.latitude) &&
-    Number.isFinite(c.longitude) &&
-    Math.abs(c.latitude as number) <= 90 &&
-    Math.abs(c.longitude as number) <= 180
-  );
-};
+const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
 const readString = (value: unknown, max = 200) => {
   if (typeof value !== 'string') return null;
@@ -106,6 +97,70 @@ r.get('/history', async (req: AuthedRequest, res) => {
 
   const snap = await query.limit(50).get();
   res.json(snap.docs.map(serialize));
+});
+
+r.patch('/:id/location', requireRole('customer'), async (req: AuthedRequest, res) => {
+  const { location, address } = req.body;
+  if (!isCoord(location)) return res.status(400).json({ error: 'Invalid location' });
+  const ref = col.doc(String(req.params.id));
+  const s = await ref.get();
+  if (!s.exists || s.data()!.customerId !== req.uid) return res.status(404).json({ error: 'Not found' });
+  if (s.data()!.status !== 'pending') {
+    return res.status(409).json({ error: 'Location can only change while the order is pending' });
+  }
+  const update: Record<string, unknown> = {
+    location: { latitude: location.latitude, longitude: location.longitude },
+  };
+  if (typeof address === 'string' && address.trim()) update.address = address.trim().slice(0, 200);
+  await ref.update(update);
+  res.json({ ok: true });
+});
+
+r.put('/:id/rider-location', requireRole('rider'), async (req: AuthedRequest, res) => {
+  const { latitude, longitude, heading, speed } = req.body;
+  if (!isCoord({ latitude, longitude })) return res.status(400).json({ error: 'Invalid location' });
+  const ref = col.doc(String(req.params.id));
+  const s = await ref.get();
+  if (!s.exists || s.data()!.riderId !== req.uid) return res.status(404).json({ error: 'Not found' });
+  const o = s.data()!;
+  if (o.status !== 'on_the_way') return res.status(409).json({ error: 'Order is not on the way' });
+  const last: number | undefined = o.riderLocation?.updatedAt?.toMillis?.();
+  if (last && Date.now() - last < MIN_PUSH_INTERVAL_MS) {
+    return res.status(429).json({ error: 'Too many updates', retryAfterMs: MIN_PUSH_INTERVAL_MS - (Date.now() - last) });
+  }
+  await ref.update({
+    riderLocation: { latitude, longitude, heading: num(heading), speed: num(speed), updatedAt: FieldValue.serverTimestamp() },
+  });
+  res.json({ ok: true });
+});
+
+r.get('/:id/tracking', async (req: AuthedRequest, res) => {
+  const s = await col.doc(String(req.params.id)).get();
+  if (!s.exists) return res.status(404).json({ error: 'Not found' });
+  const o = s.data()!;
+  if (o.customerId !== req.uid && o.riderId !== req.uid) return res.status(403).json({ error: 'Forbidden' });
+
+  const live = o.status === 'on_the_way' && o.riderLocation ? o.riderLocation : null;
+  const done = o.status === 'delivered' || o.status === 'cancelled';
+  // Straight-line estimates only; road routing is not included in this project.
+  const km = distanceKm(live ?? STATION, o.location);
+  res.json({
+    orderId: s.id,
+    status: o.status,
+    address: o.address ?? null,
+    customerLocation: o.location,
+    riderLocation: live && {
+      latitude: live.latitude,
+      longitude: live.longitude,
+      heading: live.heading ?? null,
+      speed: live.speed ?? null,
+      updatedAt: live.updatedAt?.toMillis?.() ?? null,
+    },
+    station: STATION,
+    distanceKm: Math.round(km * 10) / 10,
+    etaMinutes: done ? null : etaMinutes(km, AVG_SPEED_KMH),
+    serverTime: Date.now(),
+  });
 });
 
 r.get('/:id', async (req: AuthedRequest, res) => {
