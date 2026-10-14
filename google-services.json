@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDfnLcrJ-zY1OMk6jEdlBh61ILOCOx0RBI"
+          "current_key": "${EXPO_PUBLIC_API_CURRENT_KEY}"
         }
       ],
       "services": {
