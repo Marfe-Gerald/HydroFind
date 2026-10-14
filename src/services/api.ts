@@ -1,6 +1,13 @@
 import { Platform } from 'react-native';
 import { auth } from './firebase';
 
+export class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 // Set EXPO_PUBLIC_API_URL in the root .env (plain line, no quotes), then restart: npx expo start -c
 // Falls back to localhost when running in a web browser.
 const RAW_BASE =
@@ -18,7 +25,7 @@ export async function api<T = any>(path: string, options: RequestInit = {}): Pro
 
   const token = await auth.currentUser?.getIdToken();
   const url = `${BASE}/api${path}`;
-  console.log(`[api] ${options.method ?? 'GET'} ${url}`);
+  if (__DEV__) console.log(`[api] ${options.method ?? 'GET'} ${url}`);
 
   let res: Response;
   const controller = new AbortController();
@@ -40,6 +47,8 @@ export async function api<T = any>(path: string, options: RequestInit = {}): Pro
   }
 
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
+  if (!res.ok) {
+    throw new ApiError(data.error ?? `Request failed (${res.status})`, res.status);
+  }
   return data;
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "680149749197",
+    "project_id": "hydrofind-c959f",
+    "storage_bucket": "hydrofind-c959f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:680149749197:android:70f45599d56331a4160884",
+        "android_client_info": {
+          "package_name": "com.JMSoftware.HydroFind"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "${EXPO_PUBLIC_API_CURRENT_KEY}"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

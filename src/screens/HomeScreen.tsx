@@ -22,11 +22,12 @@ const QUICK_ACTIONS = [
 
 interface HomeScreenProps {
   navigation?: {
-    navigate: (screen: string) => void;
+    navigate: (screen: string, params?: any) => void;
   };
+  overview?: { label: string; value: string | number }[];
 }
 
-export default function HomeScreen({ navigation }: HomeScreenProps) {
+export default function HomeScreen({ navigation, overview = MOCK_OVERVIEW }: HomeScreenProps) {
   const goTo = (screen: string) => () => navigation?.navigate(screen);
 
   return (
@@ -53,9 +54,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         {/* Overview */}
         <Text style={styles.sectionTitle}>OVERVIEW</Text>
         <View style={styles.overviewRow}>
-          {MOCK_OVERVIEW.map((item) => (
+          {overview.map((item) => (
             <View key={item.label} style={styles.overviewCard}>
-              <Text style={styles.overviewValue}>{item.value}</Text>
+              <Text style={styles.overviewValue}>{String(item.value)}</Text>
               <Text style={styles.overviewLabel}>{item.label}</Text>
             </View>
           ))}

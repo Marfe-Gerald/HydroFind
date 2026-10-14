@@ -25,7 +25,7 @@ export default function OrderCard({ order, onPress }: OrderCardProps) {
         <View
           style={[
             styles.progressFill,
-            { width: `${order.progress * 100}%`, backgroundColor: accent },
+            { width: `${order.progress}%`, backgroundColor: accent },
           ]}
         />
       </View>

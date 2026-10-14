@@ -9,6 +9,7 @@ const STATUS_STYLES: Record<OrderStatus, { bg: string; text: string }> = {
   Pending: { bg: colors.pendingBg, text: colors.pendingText },
   'On the Way': { bg: colors.onTheWayBg, text: colors.onTheWayText },
   Delivered: { bg: colors.deliveredBg, text: colors.deliveredText },
+  Cancelled: { bg: colors.cancelledBg, text: colors.cancelledText },
 };
 
 interface StatusBadgeProps {
