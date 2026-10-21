@@ -1,7 +1,7 @@
 // src/Screens/Driver/Driver-MapView.tsx
 // Map is rendered with Leaflet inside a WebView, so no Google API key is needed.
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -29,8 +29,16 @@ interface MapViewScreenProps {
 
 type Coord = { latitude: number; longitude: number };
 
+// Messages sent from the Leaflet page to React Native
+type MapMessage = { type: 'route'; distanceKm: number; durationMin: number };
+
 // HydroFind station location (change to your real station)
-const STATION: Coord = { latitude: 14.5878, longitude: 121.0614 };
+const STATION: Coord = { latitude: 7.4594190, longitude: 125.7882083 };
+
+// Free CARTO basemap key (request one at https://carto.com/basemaps/apikey).
+// Put it in .env as EXPO_PUBLIC_CARTO_BASEMAP_KEY and restart Expo.
+// It is not a secret: it is sent with every tile request anyway.
+const CARTO_BASEMAP_KEY = process.env.EXPO_PUBLIC_CARTO_BASEMAP_KEY ?? '';
 
 // Straight-line distance in km (haversine)
 function distanceKm(a: Coord, b: Coord) {
@@ -45,8 +53,14 @@ function distanceKm(a: Coord, b: Coord) {
 }
 
 // Builds the HTML page that Leaflet runs in
-function buildMapHtml(station: Coord, customer: Coord | null, name: string, address: string) {
-  const data = JSON.stringify({ station, customer, name, address }).replace(/</g, '\\u003c');
+function buildMapHtml(
+  station: Coord,
+  customer: Coord | null,
+  name: string,
+  address: string,
+  tileKey: string,
+) {
+  const data = JSON.stringify({ station, customer, name, address, tileKey }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html>
@@ -67,31 +81,75 @@ function buildMapHtml(station: Coord, customer: Coord | null, name: string, addr
     var DATA = ${data};
     var map = L.map('map', { zoomControl: true });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // CARTO basemaps now require a free API key (otherwise tiles are watermarked)
+    var tileUrl = 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' +
+      (DATA.tileKey ? '?key=' + encodeURIComponent(DATA.tileKey) : '');
+
+    L.tileLayer(tileUrl, {
       maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>'
     }).addTo(map);
 
     function icon(cls) {
       return L.divIcon({ className: '', html: '<div class="pin ' + cls + '"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
     }
 
+    // Escape text before putting it into popup HTML
+    function esc(t) {
+      return String(t).replace(/[&<>"']/g, function (ch) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+      });
+    }
+
+    // Send a message to React Native
+    function post(msg) {
+      if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(msg));
+    }
+
     var s = [DATA.station.latitude, DATA.station.longitude];
-    L.marker(s, { icon: icon('pin-station') }).addTo(map).bindPopup('<b>HydroFind Station</b><br>Ortigas Ave., Pasig');
+    L.marker(s, { icon: icon('pin-station') }).addTo(map).bindPopup('<b>HydroFind Station</b><br>Pioneer Ave., Tagum City');
 
     var route = null;
+    var routeVisible = true;
+
     if (DATA.customer) {
       var c = [DATA.customer.latitude, DATA.customer.longitude];
-      L.marker(c, { icon: icon('pin-customer') }).addTo(map).bindPopup('<b>' + DATA.name + '</b><br>' + DATA.address);
+      L.marker(c, { icon: icon('pin-customer') }).addTo(map)
+        .bindPopup('<b>' + esc(DATA.name) + '</b><br>' + esc(DATA.address));
+
+      // Straight dashed line first, used as a fallback if routing fails / offline
       route = L.polyline([s, c], { color: '#1d4ed8', weight: 3, dashArray: '8,8' }).addTo(map);
       map.fitBounds([s, c], { padding: [50, 50] });
+
+      // Real road route from OSRM (expects lon,lat order).
+      // The public demo server is for testing only; use OpenRouteService
+      // or your own OSRM instance in production.
+      var url = 'https://router.project-osrm.org/route/v1/driving/' +
+        s[1] + ',' + s[0] + ';' + c[1] + ',' + c[0] +
+        '?overview=full&geometries=geojson';
+
+      fetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+          if (!json.routes || !json.routes.length) return;
+          var r = json.routes[0];
+          var latlngs = r.geometry.coordinates.map(function (p) { return [p[1], p[0]]; });
+
+          if (route) map.removeLayer(route);
+          route = L.polyline(latlngs, { color: '#1d4ed8', weight: 5, opacity: 0.85 });
+          if (routeVisible) route.addTo(map);
+          map.fitBounds(route.getBounds(), { padding: [50, 50] });
+
+          post({ type: 'route', distanceKm: r.distance / 1000, durationMin: r.duration / 60 });
+        })
+        .catch(function () { /* keep the straight-line fallback */ });
     } else {
       map.setView(s, 14);
     }
 
     // Called from React Native to show / hide the route line
     window.setRoute = function (show) {
+      routeVisible = show;
       if (!route) return;
       if (show) { route.addTo(map); } else { map.removeLayer(route); }
     };
@@ -103,14 +161,24 @@ function buildMapHtml(station: Coord, customer: Coord | null, name: string, addr
 export default function MapViewScreen({ order = null, navigation }: MapViewScreenProps) {
   const webRef = useRef<WebView>(null);
   const [showRoute, setShowRoute] = useState(true);
+  // Real road distance / time reported by the map page (null until loaded)
+  const [routeInfo, setRouteInfo] = useState<{ km: number; min: number } | null>(null);
+
+  // Reset route state whenever a different order is shown (the page reloads)
+  useEffect(() => {
+    setRouteInfo(null);
+    setShowRoute(true);
+  }, [order?.id]);
 
   const customer: Coord | null =
     order?.latitude != null && order?.longitude != null
       ? { latitude: order.latitude, longitude: order.longitude }
       : null;
 
-  const km = customer ? distanceKm(STATION, customer) : 0;
-  const minutes = Math.max(1, Math.round((km / 20) * 60)); // assumes ~20 km/h
+  // Use the real road route when available, otherwise the straight-line estimate
+  const km = routeInfo?.km ?? (customer ? distanceKm(STATION, customer) : 0);
+  const minutes =
+    routeInfo?.min ?? Math.max(1, Math.round((km / 20) * 60)); // fallback assumes ~20 km/h
 
   const tripStats = [
     { label: 'Distance', value: `${km.toFixed(1)} km` },
@@ -120,10 +188,28 @@ export default function MapViewScreen({ order = null, navigation }: MapViewScree
 
   // Only rebuild the page when the order changes, not when the route is toggled
   const html = useMemo(
-    () => buildMapHtml(STATION, customer, order?.customerName ?? '', order?.address ?? ''),
+    () =>
+      buildMapHtml(
+        STATION,
+        customer,
+        order?.customerName ?? '',
+        order?.address ?? '',
+        CARTO_BASEMAP_KEY,
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [order?.id, order?.latitude, order?.longitude],
   );
+
+  const handleMessage = (e: { nativeEvent: { data: string } }) => {
+    try {
+      const msg: MapMessage = JSON.parse(e.nativeEvent.data);
+      if (msg.type === 'route') {
+        setRouteInfo({ km: msg.distanceKm, min: Math.max(1, Math.round(msg.durationMin)) });
+      }
+    } catch {
+      // ignore malformed messages
+    }
+  };
 
   const toggleRoute = () => {
     const next = !showRoute;
@@ -172,6 +258,7 @@ export default function MapViewScreen({ order = null, navigation }: MapViewScree
             scrollEnabled={false}
             nestedScrollEnabled
             setSupportMultipleWindows={false}
+            onMessage={handleMessage}
           />
 
           {customer && (

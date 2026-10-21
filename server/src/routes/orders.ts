@@ -1,20 +1,26 @@
 import { Router } from 'express';
-import { db, FieldValue, Timestamp } from '../firebase';
+import { db, FieldValue } from '../firebase';
 import { requireAuth, requireRole, AuthedRequest } from '../middleware/auth';
-import { STATION, AVG_SPEED_KMH, MIN_PUSH_INTERVAL_MS } from '../config';
+import { STATION, AVG_SPEED_KMH, MIN_PUSH_INTERVAL_MS, CATALOG, MAX_GALLONS } from '../config';
 import { isCoord, distanceKm, etaMinutes } from '../utils/geo';
+import { serializeOrder as serialize } from '../utils/serialize';
 
 const r = Router();
 r.use(requireAuth);
 
 const col = db.collection('orders');
-const toJson = (v: any): any => {
-  if (v instanceof Timestamp) return v.toDate().toISOString();
-  if (Array.isArray(v)) return v.map(toJson);
-  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, toJson(x)]));
-  return v;
+
+// Thrown inside transactions so the route can answer with the right status code.
+class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+const sendError = (res: any, e: unknown) => {
+  if (e instanceof HttpError) return res.status(e.status).json({ error: e.message });
+  throw e; // Express 5 forwards this to the 500 handler
 };
-const serialize = (d: FirebaseFirestore.DocumentSnapshot) => ({ id: d.id, ...toJson(d.data()) });
+
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
 const readString = (value: unknown, max = 200) => {
@@ -35,12 +41,16 @@ r.post('/', requireRole('customer'), async (req: AuthedRequest, res) => {
     return res.status(400).json({ error: 'Missing required order fields' });
   }
 
-  if (typeof unitPrice !== 'number' || !Number.isFinite(unitPrice) || unitPrice <= 0) {
-    return res.status(400).json({ error: 'unitPrice must be a positive number' });
+  // Never trust client pricing: product, station and price must match the server catalog.
+  if (station !== CATALOG.stationId || product !== CATALOG.productName) {
+    return res.status(400).json({ error: 'Unknown station or product' });
+  }
+  if (unitPrice !== CATALOG.unitPrice) {
+    return res.status(400).json({ error: 'Price has changed, please refresh and try again' });
   }
 
-  if (!Number.isInteger(gallons) || gallons < 1 || gallons > 50) {
-    return res.status(400).json({ error: 'gallons must be an integer between 1 and 50' });
+  if (!Number.isInteger(gallons) || gallons < 1 || gallons > MAX_GALLONS) {
+    return res.status(400).json({ error: `gallons must be an integer between 1 and ${MAX_GALLONS}` });
   }
 
   if (!isCoord(location) || !cleanAddress || !cleanPreferred) {
@@ -56,9 +66,9 @@ r.post('/', requireRole('customer'), async (req: AuthedRequest, res) => {
     contactNumber: profile.contactNumber,
     stationId: station,
     productName: product,
-    unitPrice,
+    unitPrice: CATALOG.unitPrice,
     gallons,
-    totalAmount: Number((unitPrice * gallons).toFixed(2)),
+    totalAmount: Number((CATALOG.unitPrice * gallons).toFixed(2)),
     location: { latitude: location.latitude, longitude: location.longitude },
     address: cleanAddress,
     preferredTime: cleanPreferred,
@@ -103,17 +113,23 @@ r.patch('/:id/location', requireRole('customer'), async (req: AuthedRequest, res
   const { location, address } = req.body;
   if (!isCoord(location)) return res.status(400).json({ error: 'Invalid location' });
   const ref = col.doc(String(req.params.id));
-  const s = await ref.get();
-  if (!s.exists || s.data()!.customerId !== req.uid) return res.status(404).json({ error: 'Not found' });
-  if (s.data()!.status !== 'pending') {
-    return res.status(409).json({ error: 'Location can only change while the order is pending' });
+  try {
+    await db.runTransaction(async (t) => {
+      const s = await t.get(ref);
+      if (!s.exists || s.data()!.customerId !== req.uid) throw new HttpError(404, 'Not found');
+      if (s.data()!.status !== 'pending') {
+        throw new HttpError(409, 'Location can only change while the order is pending');
+      }
+      const update: Record<string, unknown> = {
+        location: { latitude: location.latitude, longitude: location.longitude },
+      };
+      if (typeof address === 'string' && address.trim()) update.address = address.trim().slice(0, 200);
+      t.update(ref, update);
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    sendError(res, e);
   }
-  const update: Record<string, unknown> = {
-    location: { latitude: location.latitude, longitude: location.longitude },
-  };
-  if (typeof address === 'string' && address.trim()) update.address = address.trim().slice(0, 200);
-  await ref.update(update);
-  res.json({ ok: true });
 });
 
 r.put('/:id/rider-location', requireRole('rider'), async (req: AuthedRequest, res) => {
@@ -178,13 +194,17 @@ r.get('/:id', async (req: AuthedRequest, res) => {
 });
 
 r.patch('/:id/accept', requireRole('rider'), async (req: AuthedRequest, res) => {
-  const orderId = String(req.params.id);
-  const ref = col.doc(orderId);
-  const riderName = (await db.doc(`users/${req.uid}`).get()).data()?.fullName;
+  const ref = col.doc(String(req.params.id));
+  const riderName = (await db.doc(`users/${req.uid}`).get()).data()?.fullName ?? null;
   try {
     await db.runTransaction(async (t) => {
       const s = await t.get(ref);
-      if (!s.exists || s.data()!.status !== 'pending') throw new Error('UNAVAILABLE');
+      if (!s.exists || s.data()!.status !== 'pending') throw new HttpError(409, 'Order no longer available');
+      // One active delivery per rider.
+      const active = await t.get(
+        col.where('riderId', '==', req.uid).where('status', '==', 'on_the_way').limit(1)
+      );
+      if (!active.empty) throw new HttpError(409, 'Finish your current delivery before accepting another');
       t.update(ref, {
         status: 'on_the_way',
         riderId: req.uid,
@@ -193,39 +213,55 @@ r.patch('/:id/accept', requireRole('rider'), async (req: AuthedRequest, res) => 
       });
     });
     res.json({ ok: true });
-  } catch {
-    res.status(409).json({ error: 'Order no longer available' });
+  } catch (e) {
+    sendError(res, e);
   }
 });
 
 r.patch('/:id/deliver', requireRole('rider'), async (req: AuthedRequest, res) => {
-  const orderId = String(req.params.id);
-  const ref = col.doc(orderId);
-  const s = await ref.get();
-  if (!s.exists || s.data()!.riderId !== req.uid || s.data()!.status !== 'on_the_way')
-    return res.status(409).json({ error: 'Cannot deliver this order' });
-  await ref.update({ status: 'delivered', deliveredAt: FieldValue.serverTimestamp(), riderLocation: null });
-  res.json({ ok: true });
+  const ref = col.doc(String(req.params.id));
+  try {
+    await db.runTransaction(async (t) => {
+      const s = await t.get(ref);
+      if (!s.exists || s.data()!.riderId !== req.uid) throw new HttpError(404, 'Not found');
+      if (s.data()!.status !== 'on_the_way') throw new HttpError(409, 'Cannot deliver this order');
+      t.update(ref, { status: 'delivered', deliveredAt: FieldValue.serverTimestamp(), riderLocation: null });
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    sendError(res, e);
+  }
 });
 
+// Transactional so a customer cancelling cannot overwrite a rider accepting at the same moment.
 r.patch('/:id/cancel', requireRole('customer'), async (req: AuthedRequest, res) => {
-  const orderId = String(req.params.id);
-  const ref = col.doc(orderId);
-  const s = await ref.get();
-  if (!s.exists || s.data()!.customerId !== req.uid) return res.status(403).json({ error: 'Forbidden' });
-  if (s.data()!.status !== 'pending') return res.status(409).json({ error: 'Only pending orders can be cancelled' });
-  await ref.update({ status: 'cancelled' });
-  res.json({ ok: true });
+  const ref = col.doc(String(req.params.id));
+  try {
+    await db.runTransaction(async (t) => {
+      const s = await t.get(ref);
+      if (!s.exists || s.data()!.customerId !== req.uid) throw new HttpError(404, 'Not found');
+      if (s.data()!.status !== 'pending') throw new HttpError(409, 'Only pending orders can be cancelled');
+      t.update(ref, { status: 'cancelled' });
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    sendError(res, e);
+  }
 });
 
 r.delete('/:id', requireRole('customer'), async (req: AuthedRequest, res) => {
-  const orderId = String(req.params.id);
-  const ref = col.doc(orderId);
-  const s = await ref.get();
-  if (!s.exists || s.data()!.customerId !== req.uid || s.data()!.status !== 'pending')
-    return res.status(409).json({ error: 'Only your pending orders can be deleted' });
-  await ref.delete();
-  res.json({ ok: true });
+  const ref = col.doc(String(req.params.id));
+  try {
+    await db.runTransaction(async (t) => {
+      const s = await t.get(ref);
+      if (!s.exists || s.data()!.customerId !== req.uid) throw new HttpError(404, 'Not found');
+      if (s.data()!.status !== 'pending') throw new HttpError(409, 'Only your pending orders can be deleted');
+      t.delete(ref);
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    sendError(res, e);
+  }
 });
 
 export default r;

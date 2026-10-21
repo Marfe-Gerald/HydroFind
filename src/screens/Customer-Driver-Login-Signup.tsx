@@ -16,10 +16,11 @@ export const CustomerAuth = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
+  const [riderCode, setRiderCode] = useState('');
 
   const { signUp, loading: registering, error: registerError } = useRegister();
   const { signIn, loading: loggingIn, error: loginError } = useLogin();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, beginRegistration, endRegistration } = useAuth();
   const busy = registering || loggingIn;
   const error = isSignUp ? registerError : loginError;
 
@@ -32,8 +33,26 @@ export const CustomerAuth = () => {
           return;
         }
         // Firebase Auth creates the user, then POST /api/users/me saves the profile via Express
-        await signUp(email.trim(), password, name.trim(), contactNumber.trim(), userRole);
-        await refreshProfile();
+        if (userRole === 'driver' && !riderCode.trim()) {
+          Alert.alert('Driver code required', 'Enter the driver signup code you were given.');
+          return;
+        }
+        // Keep this screen mounted while the account + profile are created, so a failure
+        // shows its error here instead of resetting the form back to customer sign-up.
+        beginRegistration();
+        try {
+          await signUp(
+            email.trim(),
+            password,
+            name.trim(),
+            contactNumber.trim(),
+            userRole,
+            userRole === 'driver' ? riderCode.trim() : undefined
+          );
+          await refreshProfile();
+        } finally {
+          endRegistration();
+        }
       } else {
         await signIn(email.trim(), password);
       }
@@ -77,6 +96,16 @@ export const CustomerAuth = () => {
           value={email}
           onChangeText={setEmail}
         />
+
+        {isSignUp && userRole === 'driver' && (
+          <AuthInput
+            label="Driver Signup Code"
+            placeholder="Code from the HydroFind admin"
+            autoCapitalize="none"
+            value={riderCode}
+            onChangeText={setRiderCode}
+          />
+        )}
 
         <AuthInput
           label="Password"
