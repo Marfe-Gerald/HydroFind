@@ -1,13 +1,21 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 import { db, FieldValue } from '../firebase';
 import { requireAuth, AuthedRequest } from '../middleware/auth';
+import { toJson } from '../utils/serialize';
 
 const r = Router();
+
+const safeEqual = (a: string, b: string) => {
+  const ha = crypto.createHash('sha256').update(a).digest();
+  const hb = crypto.createHash('sha256').update(b).digest();
+  return crypto.timingSafeEqual(ha, hb);
+};
 
 const normalizeRole = (role: unknown): 'customer' | 'rider' => (role === 'rider' ? 'rider' : 'customer');
 
 r.post('/me', requireAuth, async (req: AuthedRequest, res) => {
-  const { fullName, contactNumber, email, role, riderCode } = req.body;
+  const { fullName, contactNumber, role, riderCode } = req.body;
   const safeFullName = typeof fullName === 'string' ? fullName.trim() : '';
   const safeContact = typeof contactNumber === 'string' ? contactNumber.trim() : '';
 
@@ -19,7 +27,7 @@ r.post('/me', requireAuth, async (req: AuthedRequest, res) => {
   const targetRole = normalizeRole(role);
   if (targetRole === 'rider') {
     const expected = process.env.RIDER_SIGNUP_CODE;
-    if (!expected || String(riderCode ?? '') !== expected) {
+    if (!expected || !safeEqual(String(riderCode ?? ''), expected)) {
       return res.status(403).json({ error: 'Invalid rider code' });
     }
   }
@@ -28,7 +36,7 @@ r.post('/me', requireAuth, async (req: AuthedRequest, res) => {
     await db.doc(`users/${req.uid}`).create({
       fullName: safeFullName,
       contactNumber: safeContact,
-      email: typeof email === 'string' ? email : null,
+      email: req.email ?? null, // from the verified token, not the request body
       role: targetRole,
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -45,7 +53,7 @@ r.post('/me', requireAuth, async (req: AuthedRequest, res) => {
 r.get('/me', requireAuth, async (req: AuthedRequest, res) => {
   const snap = await db.doc(`users/${req.uid}`).get();
   if (!snap.exists) return res.status(404).json({ error: 'No profile' });
-  res.json({ id: snap.id, ...snap.data() });
+  res.json({ id: snap.id, ...toJson(snap.data()) });
 });
 
 export default r;
