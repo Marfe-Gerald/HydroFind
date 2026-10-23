@@ -1,173 +1,276 @@
-// src/Screens/HomeScreen.tsx
+// src/screens/HomeScreen.tsx  (Customer Home with Highlighted Place Order Tab & Map View)
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   StatusBar,
-  SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
-import { colors, spacing, radius } from './Themes/colors';
-import { MOCK_OVERVIEW } from './Data/MockOrders';
-import PrimaryButton from './Components/PrimaryButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
-const QUICK_ACTIONS = [
-  { key: 'PlaceOrder', label: 'Place Order', icon: 'add-circle-outline' as const },
-  { key: 'ViewOrders', label: 'View Orders', icon: 'list-outline' as const },
-  { key: 'MapView', label: 'Map View', icon: 'map-outline' as const },
-  { key: 'History', label: 'History', icon: 'time-outline' as const },
-];
+import { colors, spacing, radius } from './Themes/colors';
+import { MOCK_ORDERS } from './Data/MockOrders';
+import type { Order } from './Types/Orders';
+import CustomerMapViewScreen from './Customer-Map_UI'; // Integrated Customer Map View
 
 interface HomeScreenProps {
+  orders?: Order[];
   navigation?: {
     navigate: (screen: string, params?: any) => void;
   };
   overview?: { label: string; value: string | number }[];
 }
 
-export default function HomeScreen({ navigation, overview = MOCK_OVERVIEW }: HomeScreenProps) {
-  const goTo = (screen: string) => () => navigation?.navigate(screen);
+const TABS = [
+  { key: 'Home', label: 'Home', icon: 'home', iconOutline: 'home-outline' },
+  { key: 'PlaceOrder', label: 'Place Order', icon: 'water', iconOutline: 'water-outline' },
+  { key: 'Map', label: 'Map View', icon: 'map', iconOutline: 'map-outline' },
+  { key: 'MyHistory', label: 'History', icon: 'time', iconOutline: 'time-outline' },
+];
+
+export default function HomeScreen({ orders = MOCK_ORDERS, navigation }: HomeScreenProps) {
+  const [activeTab, setActiveTab] = useState('Home');
+
+  const pending = orders.filter((o) => o.status === 'Pending').length;
+  const onWay = orders.filter((o) => o.status === 'On the Way').length;
+  const delivered = orders.filter((o) => o.status === 'Delivered').length;
+
+  const stats = [
+    { label: 'Pending', value: pending, bg: colors.pendingBg, text: colors.pendingText },
+    { label: 'On the Way', value: onWay, bg: colors.onTheWayBg, text: colors.onTheWayText },
+    { label: 'Delivered', value: delivered, bg: colors.deliveredBg, text: colors.deliveredText },
+  ];
+
+  const QUICK_ACTIONS = [
+    { key: 'PlaceOrder', label: 'Place Order', icon: 'water' as const, tint: '#3b82f6' },
+    { key: 'Map', label: 'Map View', icon: 'map' as const, tint: '#0ea5e9' },
+    { key: 'MyHistory', label: 'History', icon: 'time' as const, tint: '#64748b' },
+  ];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>HydroFind</Text>
-          <Text style={styles.headerSubtitle}>Water refill delivery, made simple</Text>
-        </View>
-        <View style={styles.roleChip}>
-          <Text style={styles.roleIcon}>●</Text>
-          <Text style={styles.roleChipText}>Customer</Text>
-        </View>
+      {/* Dynamic Main View Area based on Selected Tab */}
+      <View style={styles.mainContainer}>
+        {activeTab === 'Home' && (
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.headerEyebrow}>Welcome</Text>
+              <Text style={styles.headerTitle}>HydroFind</Text>
+              <Text style={styles.headerSubtitle}>Water Refilling Station</Text>
+            </View>
+
+            <View style={styles.content}>
+              {/* Stats */}
+              <View style={styles.statsRow}>
+                {stats.map((s) => (
+                  <View key={s.label} style={[styles.statCard, { backgroundColor: s.bg }]}>
+                    <Text style={[styles.statValue, { color: s.text }]}>{s.value}</Text>
+                    <Text style={styles.statLabel}>{s.label}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Quick actions */}
+              <View>
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                <View style={styles.quickGrid}>
+                  {QUICK_ACTIONS.map((a) => (
+                    <TouchableOpacity
+                      key={a.key}
+                      activeOpacity={0.7}
+                      style={styles.actionCard}
+                      onPress={() => {
+                        setActiveTab(a.key);
+                        navigation?.navigate?.(a.key);
+                      }}
+                    >
+                      <Ionicons name={a.icon} size={22} color={a.tint} />
+                      <Text style={styles.actionLabel}>{a.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+        )}
+
+        {activeTab === 'Map' && <CustomerMapViewScreen />}
+
+        {activeTab === 'PlaceOrder' && (
+          <View style={styles.placeholderView}>
+            <Ionicons name="water" size={48} color={colors.primary} />
+            <Text style={styles.placeholderText}>Place Order Screen UI</Text>
+          </View>
+        )}
+
+        {activeTab === 'MyHistory' && (
+          <View style={styles.placeholderView}>
+            <Ionicons name="time" size={48} color="#64748b" />
+            <Text style={styles.placeholderText}>History Screen UI</Text>
+          </View>
+        )}
       </View>
 
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={styles.bodyContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Overview */}
-        <Text style={styles.sectionTitle}>OVERVIEW</Text>
-        <View style={styles.overviewRow}>
-          {overview.map((item) => (
-            <View key={item.label} style={styles.overviewCard}>
-              <Text style={styles.overviewValue}>{String(item.value)}</Text>
-              <Text style={styles.overviewLabel}>{item.label}</Text>
-            </View>
-          ))}
-        </View>
+      {/* Built-in Bottom Tab Bar UI with Place Order Highlighted */}
+      <View style={styles.tabBarContainer}>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const isPlaceOrder = tab.key === 'PlaceOrder';
 
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
-        <View style={styles.quickGrid}>
-          {QUICK_ACTIONS.map((action) => (
-            <PrimaryButton
-              key={action.key}
-              icon={action.icon}
-              label={action.label}
-              onPress={goTo(action.key)}
-            />
-          ))}
-        </View>
-      </ScrollView>
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.tabItem}
+              activeOpacity={0.7}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <View style={[isPlaceOrder && styles.placeOrderIconBadge]}>
+                <Ionicons
+                  name={isActive ? (tab.icon as any) : (tab.iconOutline as any)}
+                  size={isPlaceOrder ? 24 : 22}
+                  color={isPlaceOrder ? colors.white : isActive ? colors.primary : '#94a3b8'}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  isActive && styles.tabLabelActive,
+                  isPlaceOrder && !isActive && styles.placeOrderLabel,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.primary,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.primary },
+  mainContainer: { flex: 1, backgroundColor: colors.background },
+  body: { flex: 1 },
+  bodyContent: { flexGrow: 1 },
+
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xl,
   },
-  headerTitle: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  headerSubtitle: {
-    color: colors.primarySoft,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  roleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-    gap: 6,
-  },
-  roleChipText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  roleIcon: {
-    color: colors.white,
-    fontSize: 18,
-    lineHeight: 18,
-  },
-  body: {
+  headerEyebrow: { color: colors.primarySoft, fontSize: 12, marginBottom: 2 },
+  headerTitle: { color: colors.white, fontSize: 22, fontWeight: '700' },
+  headerSubtitle: { color: colors.primarySoft, fontSize: 12, marginTop: 2 },
+
+  content: { padding: spacing.lg, gap: spacing.lg },
+
+  statsRow: { flexDirection: 'row', gap: spacing.sm },
+  statCard: {
     flex: 1,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    marginTop: -spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
   },
-  bodyContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
+  statValue: { fontSize: 22, fontWeight: '700' },
+  statLabel: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '700',
-    color: colors.textMuted,
-    letterSpacing: 0.5,
+    fontWeight: '600',
+    color: colors.textDark,
     marginBottom: spacing.sm,
-    marginTop: spacing.md,
   },
-  overviewRow: {
+  quickGrid: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: spacing.sm,
   },
-  overviewCard: {
-    flex: 1,
+  actionCard: {
+    width: '48.5%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     backgroundColor: colors.card,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     paddingVertical: spacing.lg,
-    alignItems: 'center',
+    paddingHorizontal: spacing.md,
   },
-  overviewValue: {
-    fontSize: 22,
-    fontWeight: '700',
+  actionLabel: { fontSize: 13, fontWeight: '500', color: colors.textDark },
+
+  placeholderView: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  placeholderText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.textDark,
   },
-  overviewLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
-  quickGrid: {
+
+  // Bottom Tab Bar Styles
+  tabBarContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    height: 65,
+    paddingHorizontal: spacing.sm,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  tabLabel: {
+    fontSize: 10,
+    color: '#94a3b8',
+    marginTop: 3,
+    fontWeight: '500',
+  },
+  tabLabelActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+
+  // Highlight Styles for Place Order Tab
+  placeOrderIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  placeOrderLabel: {
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
