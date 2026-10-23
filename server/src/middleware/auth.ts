@@ -3,6 +3,7 @@ import { adminAuth, db } from '../firebase';
 
 export interface AuthedRequest extends Request {
   uid?: string;
+  email?: string;
   role?: 'customer' | 'rider';
 }
 
@@ -12,8 +13,11 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
   if (!token) return res.status(401).json({ error: 'Missing token' });
 
   let uid: string;
+  let email: string | undefined;
   try {
-    uid = (await adminAuth.verifyIdToken(token)).uid;
+    const decoded = await adminAuth.verifyIdToken(token);
+    uid = decoded.uid;
+    email = decoded.email;
   } catch (e) {
     console.error('verifyIdToken failed:', e);
     return res.status(401).json({ error: 'Invalid token' });
@@ -21,6 +25,7 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
 
   try {
     req.uid = uid;
+    req.email = email;
     const snap = await db.doc(`users/${uid}`).get();
     req.role = snap.data()?.role;
     next();

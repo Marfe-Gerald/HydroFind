@@ -20,8 +20,9 @@ import CustomerMapViewScreen from './Customer-Map_UI'; // Integrated Customer Ma
 interface HomeScreenProps {
   orders?: Order[];
   navigation?: {
-    navigate: (screen: string) => void;
+    navigate: (screen: string, params?: any) => void;
   };
+  overview?: { label: string; value: string | number }[];
 }
 
 const TABS = [

@@ -1,7 +1,8 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Learn more: https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
 node_modules/
+server/node_modules/
 
 # Expo
 .expo/
@@ -30,22 +31,24 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env filesgit 
-.env*.local
-.env.example
+# local env files
 .env
+!.env.example
+!server/.env.example
+server/.env
+server/serviceAccountKey.json
 
 # typescript
 *.tsbuildinfo
-    
+
 # generated native folders
 /ios
 /android
 
-.env
-server/.env
-server/serviceAccountKey.json
-server/node_modules
-
+# project notes and task docs
 HydroFind_Express_Integration_Notes.md
 HydroFind_Express_Changes.md
+
+.idea
+
+D:\Projects\Programming Langauges - CS 15\HydroFindApp\HydroFind_Express_Integration_Notes.md

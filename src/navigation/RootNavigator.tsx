@@ -1,17 +1,17 @@
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { logout } from '../services/authService';
 import { CustomerAuth } from '../screens/Customer-Driver-Login-Signup';
-import HomeScreen from '../screens/HomeScreen';
-import DriverDashboard from '../screens/Driver/Driver-Dashboard';
+import CustomerNavigator from './CustomerNavigator';
+import DriverNavigator from './DriverNavigator';
 import { COLORS } from '../screens/Themes/colors';
 
 export default function RootNavigator() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileError, registering, refreshProfile } = useAuth();
 
-  // Checking saved session / loading profile
   if (loading) {
     return (
       <View style={styles.center}>
@@ -20,15 +20,15 @@ export default function RootNavigator() {
     );
   }
 
-  // Not signed in -> signup / login
-  if (!user) return <CustomerAuth />;
+  if (!user || registering) return <CustomerAuth />;
 
-  // Signed in, but profile not loaded (e.g. server offline or still being created)
   if (!profile) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primaryBlue} />
-        <Text style={styles.note}>Loading your profile...</Text>
+        <Text style={styles.note}>{profileError ?? 'Could not load your profile.'}</Text>
+        <TouchableOpacity onPress={refreshProfile}>
+          <Text style={styles.link}>Retry</Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={logout}>
           <Text style={styles.link}>Log out</Text>
         </TouchableOpacity>
@@ -36,10 +36,11 @@ export default function RootNavigator() {
     );
   }
 
-  // Signed in -> screen depends on role stored in Firestore
   return (
     <View style={styles.flex}>
-      {profile.role === 'rider' ? <DriverDashboard role="driver" /> : <HomeScreen />}
+      <NavigationContainer>
+        {profile.role === 'rider' ? <DriverNavigator /> : <CustomerNavigator />}
+      </NavigationContainer>
       <SafeAreaView edges={['bottom']} style={styles.logoutBar}>
         <TouchableOpacity onPress={logout}>
           <Text style={styles.link}>Log out ({profile.fullName})</Text>

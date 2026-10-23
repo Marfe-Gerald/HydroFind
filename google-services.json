@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "186562780927",
+    "project_id": "highdrofindapp",
+    "storage_bucket": "highdrofindapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:186562780927:android:b9cdd3b5498310f3b8f6ca",
+        "android_client_info": {
+          "package_name": "com.JMSoftware.HydroFinds"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDDnCY8c8del4O2hctWUf9e6wCJ_2sRQPs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

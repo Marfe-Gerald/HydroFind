@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
@@ -11,14 +12,31 @@ export async function register(
   password: string,
   fullName: string,
   contactNumber: string,
-  role: 'customer' | 'driver' = 'customer'
+  role: 'customer' | 'driver' = 'customer',
+  riderCode?: string
 ) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
-  await api('/users/me', {
-    method: 'POST',
-    // the app says 'driver', the database calls it 'rider'
-    body: JSON.stringify({ fullName, contactNumber, email, role: role === 'driver' ? 'rider' : 'customer' }),
-  });
+  try {
+    await api('/users/me', {
+      method: 'POST',
+      // the app says 'driver', the database calls it 'rider'
+      body: JSON.stringify({
+        fullName,
+        contactNumber,
+        email,
+        role: role === 'driver' ? 'rider' : 'customer',
+        riderCode,
+      }),
+    });
+  } catch (err) {
+    // Profile save failed -> remove the Auth account so the email isn't stuck
+    try {
+      await deleteUser(cred.user);
+    } catch (e) {
+      console.warn('Could not roll back Auth user:', e);
+    }
+    throw err; // the signup screen shows this error
+  }
   return cred.user;
 }
 

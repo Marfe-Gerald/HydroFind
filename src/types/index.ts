@@ -8,6 +8,8 @@ export type Profile = {
   role: Role;
 };
 
+export type Coord = { latitude: number; longitude: number };
+
 export type OrderStatus = 'pending' | 'on_the_way' | 'delivered' | 'cancelled';
 
 export type Order = {
@@ -22,11 +24,26 @@ export type Order = {
   unitPrice: number;
   gallons: number;
   totalAmount: number;
-  location: { latitude: number; longitude: number };
+  location: Coord;
+  address: string;
+  preferredTime: string;
+  riderLocation?: (Coord & { heading: number | null; speed: number | null; updatedAt: number | null }) | null;
   status: OrderStatus;
   paymentMethod: string;
   paymentStatus: string;
-  createdAt: any;
-  acceptedAt: any;
-  deliveredAt: any;
+  createdAt: string | null;
+  acceptedAt: string | null;
+  deliveredAt: string | null;
+};
+
+export type Tracking = {
+  orderId: string;
+  status: OrderStatus;
+  address: string | null;
+  customerLocation: Coord;
+  riderLocation: (Coord & { heading: number | null; speed: number | null; updatedAt: number | null }) | null;
+  station: Coord;
+  distanceKm: number;
+  etaMinutes: number | null;
+  serverTime: number;
 };
