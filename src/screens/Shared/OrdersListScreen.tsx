@@ -13,7 +13,14 @@ export default function OrdersListScreen({ navigation, role = 'customer' }: any)
 
   const orders = role === 'customer'
     ? myOrders.orders
-    : [...pendingOrders.orders, ...assignedOrders.orders];
+    : Array.from(
+        new Map(
+          [...pendingOrders.orders, ...assignedOrders.orders].map((order) => [
+            order.id,
+            order,
+          ] as const),
+        ).values(),
+      );
 
   const handleAccept = async (id: string) => {
     try {
