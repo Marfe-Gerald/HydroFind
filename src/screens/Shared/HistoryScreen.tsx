@@ -1,13 +1,15 @@
 import React from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useOrders } from '../../hooks/useOrders';
+import { getCustomerOrderHistory } from '../../services/customerOrderHistoryService';
 import { getHistory } from '../../services/orderService';
 import { colors, spacing } from '../Themes/colors';
 import OrderCard from '../Components/OrderCard';
 import { toUiOrder } from '../../utils/orderMapper';
 
-export default function HistoryScreen({ navigation }: any) {
-  const { orders } = useOrders(() => getHistory(), 15000);
+export default function HistoryScreen({ navigation, role = 'customer' }: any) {
+  const fetchHistory = role === 'rider' ? getHistory : getCustomerOrderHistory;
+  const { orders } = useOrders(fetchHistory, 15000);
 
   return (
     <View style={styles.container}>

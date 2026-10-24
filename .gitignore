@@ -1,54 +1,17 @@
-# Learn more: https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Default ignored files
+/shelf/
+/workspace.xml
 
-# dependencies
+# Dependencies and generated build output
 node_modules/
-server/node_modules/
-
-# Expo
 .expo/
 dist/
 web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env
-!.env.example
-!server/.env.example
-server/.env
-server/serviceAccountKey.json
-
-# typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
+# Local environment and credentials
+.env
+server/serviceAccountKey.json
 
-# project notes and task docs
-HydroFind_Express_Integration_Notes.md
-HydroFind_Express_Changes.md
-
-.idea
-
-D:\Projects\Programming Langauges - CS 15\HydroFindApp\HydroFind_Express_Integration_Notes.md
+# Local editor settings
+.idea/

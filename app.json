@@ -10,16 +10,16 @@
       "supportsTablet": true
     },
     "android": {
-  "package": "com.JMSoftware.HydroFind",
-  "googleServicesFile": "./google-services.json",
-  "adaptiveIcon": {
-    "backgroundColor": "#E6F4FE",
-    "foregroundImage": "./assets/android-icon-foreground.png",
-    "backgroundImage": "./assets/android-icon-background.png",
-    "monochromeImage": "./assets/android-icon-monochrome.png"
-  },
-  "predictiveBackGestureEnabled": false
-},
+      "package": "com.JMSoftware.HydroFind",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
@@ -30,7 +30,8 @@
         {
           "locationWhenInUsePermission": "HydroFind uses your location to set your delivery address and show your rider's progress."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

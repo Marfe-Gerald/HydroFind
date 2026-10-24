@@ -35,7 +35,7 @@ function DriverTabs() {
       <Tab.Screen name="ViewOrders">
         {(props) => <OrdersListScreen {...props} role="rider" />}
       </Tab.Screen>
-      <Tab.Screen name="MapView" component={MapContainer} />
+      <Tab.Screen name="MapView">{(props) => <MapContainer {...props} role="rider" />}</Tab.Screen>
       <Tab.Screen name="History">
         {(props) => <HistoryScreen {...props} role="rider" />}
       </Tab.Screen>

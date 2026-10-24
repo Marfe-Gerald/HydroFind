@@ -1,99 +1,199 @@
-﻿# HydroFind
+|![retry-request](logo.png)
+|:-:
+|Retry a [request][request] with built-in [exponential backoff](https://developers.google.com/analytics/devguides/reporting/core/v3/coreErrors#backoff).
 
-HydroFind is a mobile ordering and delivery app for water refill services. Customers can place refill requests, share their location, and track delivery progress. Riders and staff can accept, route, and complete orders from a mobile dashboard.
-
-## Stack
-
-- Frontend: Expo + React Native + TypeScript
-- Navigation: React Navigation with native stack + bottom tabs
-- Auth: Firebase Authentication
-- Backend: Express API in `server/`
-- Database: Firebase Firestore via Firebase Admin SDK
-- Location: Expo Location + Leaflet map view
-
-## Core features
-
-- Customer signup/login and rider signup with a shared rider code
-- Place orders with address and preferred delivery time
-- View pending, assigned, and historical orders
-- Rider accept/deliver/cancel flows
-- Map and tracking data from the station to the customer and live rider position
-- Server-side validation and Firestore access through Express
-
-## Route map
-
-Customer app:
-- Home
-- PlaceOrder
-- ViewOrders
-- MapView
-- History
-- OrderDetails
-
-Rider app:
-- Home
-- ViewOrders
-- MapView
-- History
-- OrderDetails
-
-## API overview
-
-The app talks to the Express API at `/api` with Firebase ID tokens attached. Main flows include:
-
-- `POST /api/users/me` — create or fetch the signed-in profile
-- `GET /api/orders/mine` — customer order list
-- `GET /api/orders/pending` — pending rider-visible orders
-- `GET /api/orders/assigned` — rider-assigned order list
-- `GET /api/orders/history` — delivery history
-- `POST /api/orders` — create an order
-- `PATCH /api/orders/:id/accept` — rider accepts an order
-- `PATCH /api/orders/:id/deliver` — rider marks it delivered
-- `PATCH /api/orders/:id/cancel` — cancel while pending
-- `GET /api/orders/:id/tracking` — live tracking payload
-- `PATCH /api/orders/:id/location` — customer updates order location
-- `PUT /api/orders/:id/rider-location` — rider pushes live GPS position
-
-## Environment setup
-
-Create a root `.env` file from the example and add your app config values:
-
-```bash
-cp .env.example .env
+```sh
+$ npm install --save teeny-request
+$ npm install --save retry-request
 ```
 
-The app expects Firebase values such as:
+```js
+var request = require('retry-request', {
+  request: require('teeny-request'),
+});
+```
 
-- `EXPO_PUBLIC_FIREBASE_API_KEY`
-- `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`
-- `EXPO_PUBLIC_FIREBASE_PROJECT_ID`
-- `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
-- `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-- `EXPO_PUBLIC_FIREBASE_APP_ID`
-- `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID`
-- `EXPO_PUBLIC_API_URL=http://<your-lan-ip>:3000`
+It should work the same as `request` and `teeny-request` in both callback mode and stream mode.
 
-The server also uses `server/.env` for backend-only values, including `RIDER_SIGNUP_CODE`.
+Note: This module only works when used as a readable stream, i.e. POST requests aren't supported ([#3](https://github.com/stephenplusplus/retry-request/issues/3)).
 
-## Running locally
+## Do I need to install `request`?
 
-1. Copy the server env example if needed:
-   ```bash
-   cp server/.env.example server/.env
-   ```
-2. Start the API server:
-   ```bash
-   cd server
-   npm run dev
-   ```
-3. Start the Expo app:
-   ```bash
-   npx expo start -c
-   ```
-4. On a device or emulator, use the local LAN IP configured in `EXPO_PUBLIC_API_URL`.
+Yes! You must independently install `teeny-request` OR `request` (_deprecated_) and provide it to this library:
 
-## Notes
+```js
+var request = require('retry-request', {
+  request: require('teeny-request'),
+});
+```
 
-- Do not commit `.env` files or Firebase service account keys.
-- The project uses Firestore via the Express server rather than direct client-side Firestore access.
-- `HydroFind_Express_Integration_Notes.md` was updated to match the real repo state rather than the earlier planning assumptions.
+#### Callback
+
+`urlThatReturns503` will be requested 3 total times before giving up and executing the callback.
+
+```js
+request(urlThatReturns503, function (err, resp, body) {});
+```
+
+#### Stream
+
+`urlThatReturns503` will be requested 3 total times before giving up and emitting the `response` and `complete` event as usual.
+
+```js
+request(urlThatReturns503)
+  .on('error', function () {})
+  .on('response', function () {})
+  .on('complete', function () {});
+```
+
+## Can I monitor what retry-request is doing internally?
+
+Yes! To enable the debug mode, set the environment variable `DEBUG` to _retry-request_.
+
+(Thanks for the implementation, @yihaozhadan!)
+
+## request(requestOptions, [opts], [cb])
+
+### requestOptions
+
+Passed directly to `request` or `teeny-request`. See the list of options supported:
+
+- https://github.com/request/request/#requestoptions-callback
+- https://github.com/googleapis/teeny-request#teenyrequestoptions-callback
+
+### opts _(optional)_
+
+#### `opts.noResponseRetries`
+
+Type: `Number`
+
+Default: `2`
+
+The number of times to retry after a response fails to come through, such as a DNS resolution error or a socket hangup.
+
+```js
+var opts = {
+  noResponseRetries: 0,
+};
+
+request(url, opts, function (err, resp, body) {
+  // url was requested 1 time before giving up and
+  // executing this callback.
+});
+```
+
+#### `opts.objectMode`
+
+Type: `Boolean`
+
+Default: `false`
+
+Set to `true` if your custom `opts.request` function returns a stream in object mode.
+
+#### `opts.retries`
+
+Type: `Number`
+
+Default: `2`
+
+```js
+var opts = {
+  retries: 4,
+};
+
+request(urlThatReturns503, opts, function (err, resp, body) {
+  // urlThatReturns503 was requested a total of 5 times
+  // before giving up and executing this callback.
+});
+```
+
+#### `opts.currentRetryAttempt`
+
+Type: `Number`
+
+Default: `0`
+
+```js
+var opts = {
+  currentRetryAttempt: 1,
+};
+
+request(urlThatReturns503, opts, function (err, resp, body) {
+  // urlThatReturns503 was requested as if it already failed once.
+});
+```
+
+#### `opts.shouldRetryFn`
+
+Type: `Function`
+
+Default: Returns `true` if [http.incomingMessage](https://nodejs.org/api/http.html#http_http_incomingmessage).statusCode is < 200 or >= 400.
+
+```js
+var opts = {
+  shouldRetryFn: function (incomingHttpMessage) {
+    return incomingHttpMessage.statusMessage !== 'OK';
+  },
+};
+
+request(urlThatReturnsNonOKStatusMessage, opts, function (err, resp, body) {
+  // urlThatReturnsNonOKStatusMessage was requested a
+  // total of 3 times, each time using `opts.shouldRetryFn`
+  // to decide if it should continue before giving up and
+  // executing this callback.
+});
+```
+
+#### `opts.request`
+
+Type: `Function`
+
+If we not provided we will throw an error advising you to provide it.
+
+_NOTE: If you override the request function, and it returns a stream in object mode, be sure to set `opts.objectMode` to `true`._
+
+```js
+var originalRequest = require('teeny-request').defaults({
+  pool: {
+    maxSockets: Infinity,
+  },
+});
+
+var opts = {
+  request: originalRequest,
+};
+
+request(urlThatReturns503, opts, function (err, resp, body) {
+  // Your provided `originalRequest` instance was used.
+});
+```
+
+#### `opts.maxRetryDelay`
+
+Type: `Number`
+
+Default: `64`
+
+The maximum time to delay in seconds. If retryDelayMultiplier results in a delay greater than maxRetryDelay, retries should delay by maxRetryDelay seconds instead.
+
+#### `opts.retryDelayMultiplier`
+
+Type: `Number`
+
+Default: `2`
+
+The multiplier by which to increase the delay time between the completion of failed requests, and the initiation of the subsequent retrying request.
+
+#### `opts.totalTimeout`
+
+Type: `Number`
+
+Default: `600`
+
+The length of time to keep retrying in seconds. The last sleep period will be shortened as necessary, so that the last retry runs at deadline (and not considerably beyond it). The total time starting from when the initial request is sent, after which an error will be returned, regardless of the retrying attempts made meanwhile.
+
+### cb _(optional)_
+
+Passed directly to `request`. See the callback section: https://github.com/request/request/#requestoptions-callback.
+
+[request]: https://github.com/request/request

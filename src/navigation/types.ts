@@ -1,15 +1,14 @@
+// types.ts
+
 export type CustomerTabParamList = {
   Home: undefined;
-  ViewOrders: undefined;
+  PlaceOrder: undefined;
+  OrderDetails: { id: string } | undefined; // optional, since a tab can render without params
   MapView: { id?: string } | undefined;
-  History: undefined;
 };
 
-export type CustomerStackParamList = CustomerTabParamList & {
-  PlaceOrder: undefined;
-  OrderDetails: { id: string };
-  DevLocation: undefined;
-};
+// Alias so any other files importing the old name keep compiling
+export type CustomerStackParamList = CustomerTabParamList;
 
 export type DriverTabParamList = {
   Home: undefined;

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import MapViewScreen from '../../screens/Driver/Driver-MapScreen';
+import MapScreen from '../../screens/Shared/MapScreen';
 import { useOrderTracking } from '../../hooks/useOrderTracking';
 import { getOrder } from '../../services/orderService';
 import { toUiOrder } from '../../utils/orderMapper';
 
-export default function MapContainer({ route, navigation }: any) {
+export default function MapContainer({ route, navigation, role = 'rider' }: any) {
   const orderId = route?.params?.id ?? null;
   const { tracking } = useOrderTracking(orderId, 5000);
   const [order, setOrder] = useState<any>(null);
@@ -23,7 +23,9 @@ export default function MapContainer({ route, navigation }: any) {
   }, [orderId]);
 
   return (
-    <MapViewScreen
+    <MapScreen
+      role={role}
+      station={tracking?.station ?? null}
       order={order ? toUiOrder(order) : null}
       navigation={navigation}
       riderLocation={tracking?.riderLocation ?? null}
