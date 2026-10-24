@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCurrentLocation } from '../../hooks/useCurrentLocation';
@@ -17,15 +17,11 @@ const isNowAvailable = () => {
 };
 
 export default function PlaceOrderScreen({ navigation }: any) {
-  const { coords, address, loading, refresh } = useCurrentLocation();
+  const { coords, address, loading, error, refresh } = useCurrentLocation();
   const [gallons, setGallons] = useState('2');
   const [preferredTime, setPreferredTime] = useState('');
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   const handleSubmit = async () => {
     if (!coords) {
@@ -66,7 +62,16 @@ export default function PlaceOrderScreen({ navigation }: any) {
       <Text style={styles.title}>Place Order</Text>
       <Text style={styles.label}>Delivery address</Text>
       <View style={styles.noteBox}>
-        <Text style={styles.noteText}>{address ?? 'Fetching current location...'}</Text>
+        <Text style={styles.noteText}>
+          {loading
+            ? 'Fetching current location...'
+            : address ?? (error ? 'Could not determine your address.' : 'Address unavailable.')}
+        </Text>
+        {error && (
+          <TouchableOpacity onPress={refresh} accessibilityRole="button">
+            <Text style={styles.retryText}>Retry location</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <Text style={styles.label}>Gallons</Text>
@@ -236,6 +241,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   noteText: { color: colors.textDark, fontSize: 13 },
+  retryText: { color: colors.primary, fontSize: 13, fontWeight: '600', marginTop: spacing.xs },
   meta: { color: colors.textMuted, fontSize: 12 },
   primaryButton: {
     backgroundColor: colors.primary,

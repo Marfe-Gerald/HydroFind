@@ -60,4 +60,19 @@ describe('navigator route parity contract', () => {
     assert.ok(placeOrder.includes('Choose a delivery time'));
     assert.ok(details.includes('onPress={() => navigation.goBack()}'));
   });
+
+  it('derives customer dashboard stats from customer orders and uses registered tab routes', () => {
+    const container = read('src/navigation/containers/CustomerHomeContainer.tsx');
+    const screen = read('src/screens/HomeScreen.tsx');
+
+    assert.ok(container.includes('useOrders<Order>(getMyOrders'));
+    assert.ok(container.includes("order.status === 'pending'"));
+    assert.ok(container.includes("order.status === 'on_the_way'"));
+    assert.ok(container.includes("order.status === 'delivered'"));
+    assert.ok(screen.includes('overview.pending'));
+    assert.equal(screen.includes('MOCK_ORDERS'), false);
+
+    const routes = [...screen.matchAll(/\{ route: '([^']+)'/g)].map((match) => match[1]);
+    assert.deepEqual(routes, ['PlaceOrder', 'MapView', 'History']);
+  });
 });

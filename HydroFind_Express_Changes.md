@@ -1,6 +1,8 @@
-# HydroFind: Agent Plan (Screen Wiring + Express Location Tracking + Firestore)
+# HydroFind: Historical Implementation Plan
 
-Instructions for the VS Code AI assistant. Execute the phases **in order**. Stop at each **CHECKPOINT**, report, and wait for my "continue".
+> **Superseded reference:** this plan describes the codebase before the current navigation, Firestore-backed API, shared map, and order flows were implemented. Do not execute its phase instructions against the current repository. Use [README.md](./README.md) for setup and inspect the current source as the source of truth.
+
+The remaining sections are retained as historical implementation notes and may describe files or behavior that no longer exist.
 
 This plan was written from the actual code in the project (not from `HydroFind_Express_Integration_Notes.md`, which is partly out of date, see section 1).
 

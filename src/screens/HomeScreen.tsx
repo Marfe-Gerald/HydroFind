@@ -10,37 +10,50 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 import { colors, spacing, radius } from './Themes/colors';
-import { MOCK_ORDERS } from './Data/MockOrders';
-import type { Order } from './Types/Orders';
+import type { CustomerTabParamList } from '../navigation/types';
+
+export type CustomerOrderOverview = {
+  pending: number;
+  onTheWay: number;
+  delivered: number;
+};
 
 interface HomeScreenProps {
-  orders?: Order[];
-  navigation?: {
-    navigate: (screen: string, params?: any) => void;
-  };
-  overview?: { label: string; value: string | number }[];
+  navigation: BottomTabNavigationProp<CustomerTabParamList, 'Home'>;
+  overview: CustomerOrderOverview;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
 }
 
 const QUICK_ACTIONS = [
-  { key: 'PlaceOrder', label: 'Place Order', icon: 'water' as const, tint: '#3b82f6' },
-  { key: 'Map', label: 'Map View', icon: 'map' as const, tint: '#0ea5e9' },
-  { key: 'MyHistory', label: 'History', icon: 'time' as const, tint: '#64748b' },
+  { route: 'PlaceOrder', label: 'Place Order', icon: 'water' as const, tint: '#3b82f6' },
+  { route: 'MapView', label: 'Map View', icon: 'map' as const, tint: '#0ea5e9' },
+  { route: 'History', label: 'History', icon: 'time' as const, tint: '#64748b' },
 ];
 
-export default function HomeScreen({
-  orders = MOCK_ORDERS,
-  navigation,
-}: HomeScreenProps) {
-  const pending = orders.filter((o) => o.status === 'Pending').length;
-  const onWay = orders.filter((o) => o.status === 'On the Way').length;
-  const delivered = orders.filter((o) => o.status === 'Delivered').length;
+type QuickActionRoute = (typeof QUICK_ACTIONS)[number]['route'];
 
+export default function HomeScreen({
+  navigation,
+  overview,
+  loading,
+  error,
+  onRetry,
+}: HomeScreenProps) {
+  const navigateTo = (route: QuickActionRoute) => {
+    if (route === 'PlaceOrder') navigation.navigate('PlaceOrder');
+    if (route === 'MapView') navigation.navigate('MapView');
+    if (route === 'History') navigation.navigate('History');
+  };
+  const displayValue = (value: number) => (loading || error ? '—' : value);
   const stats = [
-    { label: 'Pending', value: pending, bg: colors.pendingBg, text: colors.pendingText },
-    { label: 'On the Way', value: onWay, bg: colors.onTheWayBg, text: colors.onTheWayText },
-    { label: 'Delivered', value: delivered, bg: colors.deliveredBg, text: colors.deliveredText },
+    { label: 'Pending', value: displayValue(overview.pending), bg: colors.pendingBg, text: colors.pendingText },
+    { label: 'On the Way', value: displayValue(overview.onTheWay), bg: colors.onTheWayBg, text: colors.onTheWayText },
+    { label: 'Delivered', value: displayValue(overview.delivered), bg: colors.deliveredBg, text: colors.deliveredText },
   ];
 
   return (
@@ -79,10 +92,10 @@ export default function HomeScreen({
             <View style={styles.quickGrid}>
               {QUICK_ACTIONS.map((action) => (
                 <TouchableOpacity
-                  key={action.key}
+                  key={action.route}
                   activeOpacity={0.7}
                   style={styles.actionCard}
-                  onPress={() => navigation?.navigate(action.key)}
+                  onPress={() => navigateTo(action.route)}
                 >
                   <Ionicons
                     name={action.icon}
@@ -94,6 +107,17 @@ export default function HomeScreen({
               ))}
             </View>
           </View>
+
+          {loading && <Text style={styles.message}>Loading your order stats...</Text>}
+
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>Could not refresh your order stats: {error}</Text>
+              <TouchableOpacity onPress={onRetry} accessibilityRole="button">
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -186,5 +210,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: colors.textDark,
+  },
+  message: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  errorBox: {
+    backgroundColor: colors.cancelledBg,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  errorText: {
+    color: colors.cancelledText,
+    fontSize: 12,
+  },
+  retryText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 12,
   },
 });

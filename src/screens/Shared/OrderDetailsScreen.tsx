@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
@@ -6,41 +6,43 @@ import { cancelOrder, deleteOrder, deliverOrder, getOrder } from '../../services
 import { colors, radius, spacing } from '../Themes/colors';
 import StatusBadge from '../Components/StatusBadge';
 import { toUiOrder } from '../../utils/orderMapper';
+import type { Order } from '../../types';
 
 export default function OrderDetailsScreen({ route, navigation, role = 'customer' }: any) {
   const { id } = route.params;
   const isFocused = useIsFocused();
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const requestId = useRef(0);
 
-  const refresh = useCallback(async () => {
+  const loadOrder = useCallback(async (currentRequest: number) => {
     try {
-      setOrder(await getOrder(id));
+      const nextOrder = await getOrder(id);
+      if (currentRequest === requestId.current) setOrder(nextOrder);
     } catch (error: any) {
-      Alert.alert('Load failed', error.message || 'Unable to load order.');
+      if (currentRequest === requestId.current) {
+        Alert.alert('Load failed', error.message || 'Unable to load order.');
+      }
     } finally {
-      setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
   }, [id]);
 
+  const refresh = useCallback(
+    () => loadOrder(++requestId.current),
+    [loadOrder],
+  );
+
   useEffect(() => {
     if (!isFocused) return;
-
-    let active = true;
-    const load = async () => {
-      const next = await getOrder(id);
-      if (!active) return;
-      setOrder(next);
-      setLoading(false);
-    };
-
-    void load();
+    const currentRequest = ++requestId.current;
+    void loadOrder(currentRequest);
     return () => {
-      active = false;
+      requestId.current += 1;
     };
-  }, [id, isFocused]);
+  }, [isFocused, loadOrder]);
 
-  const handleAction = async (action: () => Promise<any>, successMessage: string) => {
+  const handleAction = async (action: () => Promise<unknown>, successMessage: string) => {
     try {
       await action();
       Alert.alert('Success', successMessage);
