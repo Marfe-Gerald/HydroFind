@@ -3,41 +3,51 @@ import { getTracking } from '../services/trackingService';
 import type { Tracking } from '../types';
 
 export function useOrderTracking(orderId: string | null, intervalMs = 5000) {
-  const [tracking, setTracking] = useState<Tracking | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [trackingState, setTrackingState] = useState<{
+    orderId: string;
+    tracking: Tracking;
+  } | null>(null);
+  const [errorState, setErrorState] = useState<{
+    orderId: string;
+    error: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!orderId) {
-      const clear = () => setTracking(null);
-      void clear();
       return;
     }
 
     let stopped = false;
-    let id: ReturnType<typeof setInterval>;
+    let timeout: ReturnType<typeof setTimeout>;
 
     const tick = async () => {
       try {
         const t = await getTracking(orderId);
         if (stopped) return;
-        setTracking(t);
-        setError(null);
-        if (t.status === 'delivered' || t.status === 'cancelled') clearInterval(id);
-      } catch (e: any) {
-        if (!stopped) setError(e.message ?? 'Unable to load tracking');
+        setTrackingState({ orderId, tracking: t });
+        setErrorState(null);
+        if (t.status === 'delivered' || t.status === 'cancelled') return;
+      } catch (e) {
+        if (!stopped) {
+          setErrorState({
+            orderId,
+            error: e instanceof Error ? e.message : 'Unable to load tracking',
+          });
+        }
       }
+      if (!stopped) timeout = setTimeout(() => void tick(), intervalMs);
     };
 
-    id = setInterval(() => {
-      void tick();
-    }, intervalMs);
     void tick();
 
     return () => {
       stopped = true;
-      clearInterval(id);
+      clearTimeout(timeout);
     };
   }, [orderId, intervalMs]);
 
-  return { tracking, error };
+  return {
+    tracking: trackingState?.orderId === orderId ? trackingState.tracking : null,
+    error: errorState?.orderId === orderId ? errorState.error : null,
+  };
 }

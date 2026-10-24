@@ -1,26 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import MapScreen from '../../screens/Shared/MapScreen';
 import { useOrderTracking } from '../../hooks/useOrderTracking';
-import { getOrder } from '../../services/orderService';
+import { useOrders } from '../../hooks/useOrders';
+import { getAssignedOrders, getMyOrders } from '../../services/orderService';
 import { toUiOrder } from '../../utils/orderMapper';
+import { useRiderLocationBroadcast } from '../../hooks/useRiderLocationBroadcast';
+import type { Order as ApiOrder } from '../../types';
 
 export default function MapContainer({ route, navigation, role = 'rider' }: any) {
-  const orderId = route?.params?.id ?? null;
-  const { tracking } = useOrderTracking(orderId, 5000);
-  const [order, setOrder] = useState<any>(null);
-
-  useEffect(() => {
-    if (!orderId) return;
-    let active = true;
-    getOrder(orderId)
-      .then((result) => {
-        if (active) setOrder(result);
-      })
-      .catch(() => {
-        if (active) setOrder(null);
-      });
-    return () => { active = false; };
-  }, [orderId]);
+  const requestedOrderId = route?.params?.id ?? null;
+  const { orders, refresh } = useOrders<ApiOrder>(
+    role === 'rider' ? getAssignedOrders : getMyOrders,
+    5000,
+  );
+  useFocusEffect(useCallback(() => {
+    void refresh();
+  }, [refresh]));
+  const order = requestedOrderId
+    ? orders.find((item) => item.id === requestedOrderId) ?? null
+    : orders.find((item) => item.status === 'on_the_way') ??
+      orders.find((item) => item.status === 'pending') ??
+      null;
+  const orderId = requestedOrderId ?? order?.id ?? null;
+  const { tracking } = useOrderTracking(orderId, 1000);
+  const deliveryActive = order?.status === 'on_the_way' || tracking?.status === 'on_the_way';
+  useRiderLocationBroadcast(orderId, role === 'rider' && deliveryActive);
 
   return (
     <MapScreen
@@ -29,6 +34,7 @@ export default function MapContainer({ route, navigation, role = 'rider' }: any)
       order={order ? toUiOrder(order) : null}
       navigation={navigation}
       riderLocation={tracking?.riderLocation ?? null}
+      deliveryActive={deliveryActive}
     />
   );
 }

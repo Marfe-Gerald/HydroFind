@@ -30,8 +30,8 @@ export function useRiderLocationBroadcast(orderId: string | null, enabled: boole
         subscription = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.Balanced,
-            timeInterval: 5000,
-            distanceInterval: 10,
+            timeInterval: 1000,
+            distanceInterval: 5,
           },
           (location) => {
             if (!active) return;

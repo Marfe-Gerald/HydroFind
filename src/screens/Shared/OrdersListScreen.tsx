@@ -20,6 +20,7 @@ export default function OrdersListScreen({ navigation, role = 'customer' }: any)
       await acceptOrder(id);
       pendingOrders.refresh();
       assignedOrders.refresh();
+      navigation.navigate('MapView', { id });
     } catch (error: any) {
       Alert.alert('Unable to accept order', error.message ?? 'Please try again.');
     }

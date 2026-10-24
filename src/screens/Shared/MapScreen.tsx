@@ -1,7 +1,7 @@
 // src/Screens/Driver/Driver-MapView.tsx
 // Map is rendered with Leaflet inside a WebView, so no Google API key is needed.
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ interface MapViewScreenProps {
   station?: Coord | null;
   order?: Order | null;
   riderLocation?: Coord | null;
+  deliveryActive?: boolean;
   navigation?: {
     navigate: (screen: string, params?: { id: string }) => void;
     goBack?: () => void;
@@ -62,8 +63,9 @@ function buildMapHtml(
   address: string,
   tileKey: string,
   rider: Coord | null = null,
+  deliveryActive = false,
 ) {
-  const data = JSON.stringify({ station, customer, name, address, tileKey, rider }).replace(/</g, '\\u003c');
+  const data = JSON.stringify({ station, customer, name, address, tileKey, rider, deliveryActive }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html>
@@ -75,7 +77,7 @@ function buildMapHtml(
     .pin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
     .pin-station { background: #1d4ed8; }
     .pin-customer { background: #ef4444; }
-    .pin-rider { background: #16a34a; }
+    .pin-rider { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: #16a34a; font-size: 21px; }
   </style>
 </head>
 <body>
@@ -113,47 +115,102 @@ function buildMapHtml(
     var s = [DATA.station.latitude, DATA.station.longitude];
     L.marker(s, { icon: icon('pin-station') }).addTo(map).bindPopup('<b>HydroFind Station</b><br>Pioneer Ave., Tagum City');
 
-    if (DATA.rider) {
-      var rider = [DATA.rider.latitude, DATA.rider.longitude];
-      L.marker(rider, { icon: icon('pin-rider') }).addTo(map).bindPopup('<b>Live rider</b>');
-    }
     var route = null;
     var routeVisible = true;
+    var riderMarker = null;
+    var lastRouteOrigin = null;
+    var lastRouteAt = 0;
+    var lastRouteUsedRider = false;
+    var routeRequest = 0;
+
+    function riderPoint(point) {
+      return [point.latitude, point.longitude];
+    }
+
+    function updateRiderMarker(point) {
+      if (!point) {
+        if (riderMarker) map.removeLayer(riderMarker);
+        riderMarker = null;
+        return;
+      }
+      var position = riderPoint(point);
+      if (riderMarker) {
+        riderMarker.setLatLng(position);
+      } else {
+        riderMarker = L.marker(position, {
+          icon: L.divIcon({
+            className: '',
+            html: '<div class="pin pin-rider">🚚</div>',
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+          })
+        }).addTo(map).bindPopup('<b>Live rider</b>');
+      }
+    }
+
+    function routeFrom(origin, fitBounds) {
+      if (!DATA.customer) return;
+      var c = [DATA.customer.latitude, DATA.customer.longitude];
+      var currentRequest = ++routeRequest;
+      if (route) map.removeLayer(route);
+      route = L.polyline([origin, c], { color: '#1d4ed8', weight: 3, dashArray: '8,8' });
+      if (routeVisible) route.addTo(map);
+      if (fitBounds) map.fitBounds([origin, c], { padding: [50, 50] });
+      lastRouteOrigin = origin;
+      lastRouteAt = Date.now();
+      lastRouteUsedRider = DATA.deliveryActive && Boolean(DATA.rider);
+
+      // Choose the shortest-distance candidate returned by OSRM; keep the fallback line if routing fails.
+      var url = 'https://router.project-osrm.org/route/v1/driving/' +
+        origin[1] + ',' + origin[0] + ';' + c[1] + ',' + c[0] +
+        '?overview=full&geometries=geojson&alternatives=true';
+      fetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+          if (currentRequest !== routeRequest || !json.routes || !json.routes.length) return;
+          var r = json.routes.reduce(function (shortest, candidate) {
+            return candidate.distance < shortest.distance ? candidate : shortest;
+          });
+          var latlngs = r.geometry.coordinates.map(function (p) { return [p[1], p[0]]; });
+          if (route) map.removeLayer(route);
+          route = L.polyline(latlngs, { color: '#1d4ed8', weight: 5, opacity: 0.85 });
+          if (routeVisible) route.addTo(map);
+          if (fitBounds) map.fitBounds(route.getBounds(), { padding: [50, 50] });
+          post({ type: 'route', distanceKm: r.distance / 1000, durationMin: r.duration / 60 });
+        })
+        .catch(function () { /* keep the straight-line fallback */ });
+    }
+
+    if (DATA.rider) updateRiderMarker(DATA.rider);
 
     if (DATA.customer) {
       var c = [DATA.customer.latitude, DATA.customer.longitude];
       L.marker(c, { icon: icon('pin-customer') }).addTo(map)
         .bindPopup('<b>' + esc(DATA.name) + '</b><br>' + esc(DATA.address));
-
-      // Straight dashed line first, used as a fallback if routing fails / offline
-      route = L.polyline([s, c], { color: '#1d4ed8', weight: 3, dashArray: '8,8' }).addTo(map);
-      map.fitBounds([s, c], { padding: [50, 50] });
-
-      // Real road route from OSRM (expects lon,lat order).
-      // The public demo server is for testing only; use OpenRouteService
-      // or your own OSRM instance in production.
-      var url = 'https://router.project-osrm.org/route/v1/driving/' +
-        s[1] + ',' + s[0] + ';' + c[1] + ',' + c[0] +
-        '?overview=full&geometries=geojson';
-
-      fetch(url)
-        .then(function (r) { return r.json(); })
-        .then(function (json) {
-          if (!json.routes || !json.routes.length) return;
-          var r = json.routes[0];
-          var latlngs = r.geometry.coordinates.map(function (p) { return [p[1], p[0]]; });
-
-          if (route) map.removeLayer(route);
-          route = L.polyline(latlngs, { color: '#1d4ed8', weight: 5, opacity: 0.85 });
-          if (routeVisible) route.addTo(map);
-          map.fitBounds(route.getBounds(), { padding: [50, 50] });
-
-          post({ type: 'route', distanceKm: r.distance / 1000, durationMin: r.duration / 60 });
-        })
-        .catch(function () { /* keep the straight-line fallback */ });
+      var origin = DATA.deliveryActive && DATA.rider ? riderPoint(DATA.rider) : s;
+      routeFrom(origin, true);
     } else {
       map.setView(s, 14);
     }
+
+    window.setRiderLocation = function (point) {
+      DATA.rider = point;
+      updateRiderMarker(point);
+      if (!DATA.customer || !DATA.deliveryActive || !point) return;
+
+      var origin = riderPoint(point);
+      if (route && route.getLatLngs().length > 1) {
+        var routePoints = route.getLatLngs();
+        route.setLatLngs([origin].concat(routePoints.slice(1)));
+      }
+      var movedKm = lastRouteOrigin
+        ? L.latLng(lastRouteOrigin).distanceTo(L.latLng(origin)) / 1000
+        : Infinity;
+      var shouldReroute = !lastRouteUsedRider || movedKm >= 0.1;
+      if (shouldReroute && (!lastRouteUsedRider || Date.now() - lastRouteAt >= 10000)) {
+        routeFrom(origin, false);
+      }
+    };
 
     // Called from React Native to show / hide the route line
     window.setRoute = function (show) {
@@ -166,7 +223,7 @@ function buildMapHtml(
 </html>`;
 }
 
-export default function MapScreen({ role = 'customer', station: serverStation = null, order = null, riderLocation = null, navigation }: MapViewScreenProps) {
+export default function MapScreen({ role = 'customer', station: serverStation = null, order = null, riderLocation = null, deliveryActive = false, navigation }: MapViewScreenProps) {
   void role; // Both roles share the same authorized tracking fields.
   const webRef = useRef<WebView>(null);
   const [routeVisibility, setRouteVisibility] = useState<{
@@ -189,9 +246,10 @@ export default function MapScreen({ role = 'customer', station: serverStation = 
     order?.latitude != null && order?.longitude != null
       ? { latitude: order.latitude, longitude: order.longitude }
       : null;
+  const routeOrigin = deliveryActive && riderLocation ? riderLocation : station;
 
   // Use the real road route when available, otherwise the straight-line estimate
-  const km = currentRouteInfo?.km ?? (customer ? distanceKm(station, customer) : 0);
+  const km = currentRouteInfo?.km ?? (customer ? distanceKm(routeOrigin, customer) : 0);
   const minutes =
     currentRouteInfo?.min ?? Math.max(1, Math.round((km / 20) * 60)); // fallback assumes ~20 km/h
 
@@ -211,10 +269,16 @@ export default function MapScreen({ role = 'customer', station: serverStation = 
         order?.address ?? '',
         CARTO_BASEMAP_KEY,
         riderLocation,
+        deliveryActive,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [order?.id, order?.latitude, order?.longitude, riderLocation?.latitude, riderLocation?.longitude, serverStation?.latitude, serverStation?.longitude],
+    [order?.id, order?.latitude, order?.longitude, deliveryActive, serverStation?.latitude, serverStation?.longitude],
   );
+
+  const riderLocationJson = JSON.stringify(riderLocation ?? null);
+  useEffect(() => {
+    webRef.current?.injectJavaScript(`window.setRiderLocation(${riderLocationJson}); true;`);
+  }, [riderLocationJson]);
 
   const handleMessage = (e: { nativeEvent: { data: string } }) => {
     try {
@@ -279,6 +343,12 @@ export default function MapScreen({ role = 'customer', station: serverStation = 
             nestedScrollEnabled
             setSupportMultipleWindows={false}
             onMessage={handleMessage}
+            onLoadEnd={() => {
+              const location = JSON.stringify(riderLocation ?? null);
+              webRef.current?.injectJavaScript(
+                `window.setRoute(${showRoute}); window.setRiderLocation(${location}); true;`,
+              );
+            }}
           />
 
           {customer && (
@@ -314,7 +384,9 @@ export default function MapScreen({ role = 'customer', station: serverStation = 
                   <View style={[styles.stopDot, { backgroundColor: '#1d4ed8' }]} />
                   <View style={styles.stopText}>
                     <Text style={styles.stopTag}>FROM</Text>
-                    <Text style={styles.stopTitle}>HydroFind Station</Text>
+                    <Text style={styles.stopTitle}>
+                      {deliveryActive && riderLocation ? 'Rider location' : 'HydroFind Station'}
+                    </Text>
                   </View>
                 </View>
 

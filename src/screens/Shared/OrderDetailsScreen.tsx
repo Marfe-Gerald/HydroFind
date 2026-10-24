@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import { cancelOrder, deleteOrder, deliverOrder, getOrder } from '../../services/orderService';
 import { colors, radius, spacing } from '../Themes/colors';
 import StatusBadge from '../Components/StatusBadge';
 import { toUiOrder } from '../../utils/orderMapper';
 
-export default function OrderDetailsScreen({ route, navigation }: any) {
+export default function OrderDetailsScreen({ route, navigation, role = 'customer' }: any) {
   const { id } = route.params;
   const isFocused = useIsFocused();
   const [order, setOrder] = useState<any>(null);
@@ -61,6 +62,15 @@ export default function OrderDetailsScreen({ route, navigation }: any) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <Ionicons name="chevron-back" size={20} color={colors.primary} />
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>{uiOrder.customerName}</Text>
       <StatusBadge status={uiOrder.status} />
 
@@ -85,7 +95,13 @@ export default function OrderDetailsScreen({ route, navigation }: any) {
       )}
 
       {order.status === 'on_the_way' && (
-        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('MapView', { id })}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate(
+            role === 'rider' ? 'Home' : 'Main',
+            { screen: 'MapView', params: { id } },
+          )}
+        >
           <Text style={styles.primaryText}>Open map</Text>
         </TouchableOpacity>
       )}
@@ -102,6 +118,15 @@ export default function OrderDetailsScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, gap: spacing.md },
+  backButton: {
+    alignSelf: 'flex-start',
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  backButtonText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   title: { fontSize: 24, fontWeight: '700', color: colors.textDark },
   card: {
     backgroundColor: colors.card,

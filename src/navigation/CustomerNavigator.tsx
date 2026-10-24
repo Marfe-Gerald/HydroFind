@@ -9,27 +9,31 @@ import CustomerPlaceOrderScreen from '../screens/Customer/PlaceOrderScreen';
 import HistoryScreen from '../screens/Shared/HistoryScreen';
 import OrderDetailsScreen from '../screens/Shared/OrderDetailsScreen';
 import MapContainer from './containers/MapContainer';
+import type { CustomerStackParamList, CustomerTabParamList } from './types';
 
 const TABS = [
   { key: 'Home', label: 'Home', icon: 'home', iconOutline: 'home-outline' },
   { key: 'PlaceOrder', label: 'Place Order', icon: 'water', iconOutline: 'water-outline' },
-  { key: 'Map', label: 'Map View', icon: 'map', iconOutline: 'map-outline' },
-  { key: 'MyHistory', label: 'History', icon: 'time', iconOutline: 'time-outline' },
+  { key: 'MapView', label: 'Map View', icon: 'map', iconOutline: 'map-outline' },
+  { key: 'History', label: 'History', icon: 'time', iconOutline: 'time-outline' },
 ] as const;
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<CustomerTabParamList>();
 const HistoryStack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<CustomerStackParamList>();
 
 function CustomerHistoryNavigator() {
   return (
     <HistoryStack.Navigator screenOptions={{ headerShown: false }}>
-      <HistoryStack.Screen name="History" component={HistoryScreen} />
-      <HistoryStack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+      <HistoryStack.Screen name="HistoryList" component={HistoryScreen} />
+      <HistoryStack.Screen name="OrderDetails">
+        {(props) => <OrderDetailsScreen {...props} role="customer" />}
+      </HistoryStack.Screen>
     </HistoryStack.Navigator>
   );
 }
 
-export default function CustomerNavigator() {
+function CustomerTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => {
@@ -52,9 +56,9 @@ export default function CustomerNavigator() {
       }}
     >
       {TABS.map((tab) => {
-        if (tab.key === 'Map') {
+        if (tab.key === 'MapView') {
           return (
-            <Tab.Screen key={tab.key} name="Map">
+            <Tab.Screen key={tab.key} name="MapView">
               {(props) => <MapContainer {...props} role="customer" />}
             </Tab.Screen>
           );
@@ -83,11 +87,22 @@ export default function CustomerNavigator() {
         return (
           <Tab.Screen
             key={tab.key}
-            name="MyHistory"
+            name="History"
             component={CustomerHistoryNavigator}
           />
         );
       })}
     </Tab.Navigator>
+  );
+}
+
+export default function CustomerNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Main" component={CustomerTabs} />
+      <Stack.Screen name="OrderDetails">
+        {(props) => <OrderDetailsScreen {...props} role="customer" />}
+      </Stack.Screen>
+    </Stack.Navigator>
   );
 }
