@@ -7,8 +7,8 @@ import { toJson } from '../utils/serialize';
 const r = Router();
 
 const safeEqual = (a: string, b: string) => {
-  const ha = crypto.createHash('sha256').update(a).digest();
-  const hb = crypto.createHash('sha256').update(b).digest();
+  const ha = Uint8Array.from(crypto.createHash('sha256').update(a).digest());
+  const hb = Uint8Array.from(crypto.createHash('sha256').update(b).digest());
   return crypto.timingSafeEqual(ha, hb);
 };
 

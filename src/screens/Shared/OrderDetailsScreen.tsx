@@ -1,45 +1,48 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import { cancelOrder, deleteOrder, deliverOrder, getOrder } from '../../services/orderService';
 import { colors, radius, spacing } from '../Themes/colors';
 import StatusBadge from '../Components/StatusBadge';
 import { toUiOrder } from '../../utils/orderMapper';
+import type { Order } from '../../types';
 
-export default function OrderDetailsScreen({ route, navigation }: any) {
+export default function OrderDetailsScreen({ route, navigation, role = 'customer' }: any) {
   const { id } = route.params;
   const isFocused = useIsFocused();
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const requestId = useRef(0);
 
-  const refresh = useCallback(async () => {
+  const loadOrder = useCallback(async (currentRequest: number) => {
     try {
-      setOrder(await getOrder(id));
+      const nextOrder = await getOrder(id);
+      if (currentRequest === requestId.current) setOrder(nextOrder);
     } catch (error: any) {
-      Alert.alert('Load failed', error.message || 'Unable to load order.');
+      if (currentRequest === requestId.current) {
+        Alert.alert('Load failed', error.message || 'Unable to load order.');
+      }
     } finally {
-      setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
   }, [id]);
 
+  const refresh = useCallback(
+    () => loadOrder(++requestId.current),
+    [loadOrder],
+  );
+
   useEffect(() => {
     if (!isFocused) return;
-
-    let active = true;
-    const load = async () => {
-      const next = await getOrder(id);
-      if (!active) return;
-      setOrder(next);
-      setLoading(false);
-    };
-
-    void load();
+    const currentRequest = ++requestId.current;
+    void loadOrder(currentRequest);
     return () => {
-      active = false;
+      requestId.current += 1;
     };
-  }, [id, isFocused]);
+  }, [isFocused, loadOrder]);
 
-  const handleAction = async (action: () => Promise<any>, successMessage: string) => {
+  const handleAction = async (action: () => Promise<unknown>, successMessage: string) => {
     try {
       await action();
       Alert.alert('Success', successMessage);
@@ -61,6 +64,15 @@ export default function OrderDetailsScreen({ route, navigation }: any) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <Ionicons name="chevron-back" size={20} color={colors.primary} />
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>{uiOrder.customerName}</Text>
       <StatusBadge status={uiOrder.status} />
 
@@ -85,7 +97,13 @@ export default function OrderDetailsScreen({ route, navigation }: any) {
       )}
 
       {order.status === 'on_the_way' && (
-        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('MapView', { id })}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate(
+            role === 'rider' ? 'Home' : 'Main',
+            { screen: 'MapView', params: { id } },
+          )}
+        >
           <Text style={styles.primaryText}>Open map</Text>
         </TouchableOpacity>
       )}
@@ -102,6 +120,15 @@ export default function OrderDetailsScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, gap: spacing.md },
+  backButton: {
+    alignSelf: 'flex-start',
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  backButtonText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   title: { fontSize: 24, fontWeight: '700', color: colors.textDark },
   card: {
     backgroundColor: colors.card,

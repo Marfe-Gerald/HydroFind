@@ -1,99 +1,27 @@
-﻿# HydroFind
+# HydroFind
 
-HydroFind is a mobile ordering and delivery app for water refill services. Customers can place refill requests, share their location, and track delivery progress. Riders and staff can accept, route, and complete orders from a mobile dashboard.
+HydroFind is an Expo and React Native app for ordering water deliveries and tracking rider progress. Customer and rider accounts authenticate with Firebase Authentication; order data is served by the Express API backed by Cloud Firestore.
 
-## Stack
+## App setup
 
-- Frontend: Expo + React Native + TypeScript
-- Navigation: React Navigation with native stack + bottom tabs
-- Auth: Firebase Authentication
-- Backend: Express API in `server/`
-- Database: Firebase Firestore via Firebase Admin SDK
-- Location: Expo Location + Leaflet map view
+1. Install dependencies with `npm ci`.
+2. Copy `.env.example` to `.env` and fill in the Firebase client configuration and API URL.
+3. Start the app with `npm run start`.
 
-## Core features
+For Android Emulator, the app rewrites `localhost` to `10.0.2.2`. For a physical device, set `EXPO_PUBLIC_API_URL` to the development machine's LAN address, such as `http://192.168.1.10:3000`.
 
-- Customer signup/login and rider signup with a shared rider code
-- Place orders with address and preferred delivery time
-- View pending, assigned, and historical orders
-- Rider accept/deliver/cancel flows
-- Map and tracking data from the station to the customer and live rider position
-- Server-side validation and Firestore access through Express
+## API setup
 
-## Route map
+1. Place a Firebase Admin service-account JSON file at `server/serviceAccountKey.json`. Do not commit this file.
+2. In `server/`, run `npm ci`.
+3. Set `PORT` (optional) and `RIDER_SIGNUP_CODE` in the server environment.
+4. Start the API from `server/` with `npm run dev`.
 
-Customer app:
-- Home
-- PlaceOrder
-- ViewOrders
-- MapView
-- History
-- OrderDetails
+The API listens on port `3000` by default. Deploy the Firestore indexes from `firestore.indexes.json` before using order history, assignment, or tracking queries.
 
-Rider app:
-- Home
-- ViewOrders
-- MapView
-- History
-- OrderDetails
+## Checks
 
-## API overview
-
-The app talks to the Express API at `/api` with Firebase ID tokens attached. Main flows include:
-
-- `POST /api/users/me` — create or fetch the signed-in profile
-- `GET /api/orders/mine` — customer order list
-- `GET /api/orders/pending` — pending rider-visible orders
-- `GET /api/orders/assigned` — rider-assigned order list
-- `GET /api/orders/history` — delivery history
-- `POST /api/orders` — create an order
-- `PATCH /api/orders/:id/accept` — rider accepts an order
-- `PATCH /api/orders/:id/deliver` — rider marks it delivered
-- `PATCH /api/orders/:id/cancel` — cancel while pending
-- `GET /api/orders/:id/tracking` — live tracking payload
-- `PATCH /api/orders/:id/location` — customer updates order location
-- `PUT /api/orders/:id/rider-location` — rider pushes live GPS position
-
-## Environment setup
-
-Create a root `.env` file from the example and add your app config values:
-
-```bash
-cp .env.example .env
-```
-
-The app expects Firebase values such as:
-
-- `EXPO_PUBLIC_FIREBASE_API_KEY`
-- `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`
-- `EXPO_PUBLIC_FIREBASE_PROJECT_ID`
-- `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
-- `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-- `EXPO_PUBLIC_FIREBASE_APP_ID`
-- `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID`
-- `EXPO_PUBLIC_API_URL=http://<your-lan-ip>:3000`
-
-The server also uses `server/.env` for backend-only values, including `RIDER_SIGNUP_CODE`.
-
-## Running locally
-
-1. Copy the server env example if needed:
-   ```bash
-   cp server/.env.example server/.env
-   ```
-2. Start the API server:
-   ```bash
-   cd server
-   npm run dev
-   ```
-3. Start the Expo app:
-   ```bash
-   npx expo start -c
-   ```
-4. On a device or emulator, use the local LAN IP configured in `EXPO_PUBLIC_API_URL`.
-
-## Notes
-
-- Do not commit `.env` files or Firebase service account keys.
-- The project uses Firestore via the Express server rather than direct client-side Firestore access.
-- `HydroFind_Express_Integration_Notes.md` was updated to match the real repo state rather than the earlier planning assumptions.
+- `npm run lint` — lint the Expo app
+- `npx tsc --noEmit` — typecheck the app
+- `npm test` — run the repository tests
+- From `server/`, run `npm run typecheck` — typecheck the API

@@ -1,4 +1,4 @@
-// src/Screens/Components/OrderCard.tsx
+// src/screens/Components/OrderCard.tsx
 
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';

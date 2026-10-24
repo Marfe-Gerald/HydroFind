@@ -5,38 +5,37 @@ export function useOrders<T = any>(fetcher: () => Promise<T[]>, intervalMs = 700
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetcherRef = useRef(fetcher);
+  const latestRequestId = useRef(0);
 
   useEffect(() => {
     fetcherRef.current = fetcher;
   }, [fetcher]);
 
   const refresh = useCallback(async () => {
+    const requestId = ++latestRequestId.current;
     try {
       const result = await fetcherRef.current();
       if (!Array.isArray(result)) {
         throw new TypeError('Orders response must be an array.');
       }
+      if (requestId !== latestRequestId.current) return;
       setOrders(result);
       setError(null);
     } catch (e: any) {
+      if (requestId !== latestRequestId.current) return;
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestId.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    let active = true;
-    const run = async () => {
-      await refresh();
-      if (!active) return;
-    };
-    void run();
+    void refresh();
     const id = setInterval(() => {
       void refresh();
     }, intervalMs);
     return () => {
-      active = false;
+      latestRequestId.current += 1;
       clearInterval(id);
     };
   }, [refresh, intervalMs]);
