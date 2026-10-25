@@ -29,7 +29,7 @@ export async function api<T = any>(path: string, options: RequestInit = {}): Pro
 
   let res: Response;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000); // give up after 10s instead of hanging
+  const timer = setTimeout(() => controller.abort(), 60000); // Render free tier can take ~60s to wake from sleep
   try {
     res = await fetch(url, {
       ...options,
@@ -41,7 +41,7 @@ export async function api<T = any>(path: string, options: RequestInit = {}): Pro
       },
     });
   } catch {
-    throw new Error(`Cannot reach the server at ${BASE}. Is it running, and is the URL correct?`);
+    throw new Error(`Cannot reach the server at ${BASE}. It may be waking up - try again in a moment.`);
   } finally {
     clearTimeout(timer);
   }

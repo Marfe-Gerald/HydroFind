@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: hydrofind-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    plan: free
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: RIDER_SIGNUP_CODE
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false

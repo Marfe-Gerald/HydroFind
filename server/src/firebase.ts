@@ -3,10 +3,27 @@ import fs from 'fs';
 import path from 'path';
 import admin from 'firebase-admin';
 
-// Load the service account key directly (no GOOGLE_APPLICATION_CREDENTIALS env var needed).
-// Put serviceAccountKey.json in the server/ folder (next to package.json).
-const keyPath = path.resolve(__dirname, '../serviceAccountKey.json');
-const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+// Credential lookup order:
+//   1. FIREBASE_SERVICE_ACCOUNT  - the full JSON as a single env var (use this on Render)
+//   2. /etc/secrets/serviceAccountKey.json - Render "Secret File" (alternative on Render)
+//   3. server/serviceAccountKey.json - local development only (gitignored)
+function loadServiceAccount(): admin.ServiceAccount & { project_id: string } {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  }
+  const candidates = [
+    '/etc/secrets/serviceAccountKey.json',
+    path.resolve(__dirname, '../serviceAccountKey.json'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
+  }
+  throw new Error(
+    'Firebase credentials not found. Set FIREBASE_SERVICE_ACCOUNT (full JSON) or add server/serviceAccountKey.json.'
+  );
+}
+
+const serviceAccount = loadServiceAccount();
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
