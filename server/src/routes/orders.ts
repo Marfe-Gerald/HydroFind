@@ -240,8 +240,10 @@ r.patch('/:id/cancel', requireRole('customer'), async (req: AuthedRequest, res) 
     await db.runTransaction(async (t) => {
       const s = await t.get(ref);
       if (!s.exists || s.data()!.customerId !== req.uid) throw new HttpError(404, 'Not found');
-      if (s.data()!.status !== 'pending') throw new HttpError(409, 'Only pending orders can be cancelled');
-      t.update(ref, { status: 'cancelled' });
+      if (s.data()!.status !== 'pending' && s.data()!.status !== 'on_the_way') {
+        throw new HttpError(409, 'Only undelivered orders can be cancelled');
+      }
+      t.update(ref, { status: 'cancelled', riderLocation: null });
     });
     res.json({ ok: true });
   } catch (e) {

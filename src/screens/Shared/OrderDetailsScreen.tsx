@@ -52,6 +52,19 @@ export default function OrderDetailsScreen({ route, navigation, role = 'customer
     }
   };
 
+  const confirmCancel = () => {
+    Alert.alert('Cancel order?', 'Are you sure you want to cancel this order?', [
+      { text: 'Keep order', style: 'cancel' },
+      {
+        text: 'Cancel order',
+        style: 'destructive',
+        onPress: () => {
+          void handleAction(() => cancelOrder(id), 'Order cancelled.');
+        },
+      },
+    ]);
+  };
+
   if (loading) {
     return <View style={styles.container}><Text style={styles.empty}>Loading order...</Text></View>;
   }
@@ -85,14 +98,16 @@ export default function OrderDetailsScreen({ route, navigation, role = 'customer
         <Text style={styles.value}>{uiOrder.gallons}</Text>
       </View>
 
-      {order.status === 'pending' && (
+      {role === 'customer' && (order.status === 'pending' || order.status === 'on_the_way') && (
         <View style={styles.row}>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => handleAction(() => cancelOrder(id), 'Order cancelled.') }>
-            <Text style={styles.secondaryText}>Cancel</Text>
+          <TouchableOpacity style={styles.secondaryButton} onPress={confirmCancel}>
+            <Text style={styles.secondaryText}>Cancel order</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => handleAction(() => deleteOrder(id), 'Order removed.') }>
-            <Text style={styles.secondaryText}>Delete</Text>
-          </TouchableOpacity>
+          {order.status === 'pending' && (
+            <TouchableOpacity style={styles.secondaryButton} onPress={() => handleAction(() => deleteOrder(id), 'Order removed.')}>
+              <Text style={styles.secondaryText}>Delete</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
