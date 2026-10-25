@@ -11,14 +11,14 @@
       },
       "environment": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR-SERVICE.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://hydrofind.onrender.com"
       }
     },
     "production": {
       "environment": "production",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR-SERVICE.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://hydrofind.onrender.com"
       }
     }
   }
