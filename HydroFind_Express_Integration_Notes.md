@@ -112,7 +112,7 @@ Files created/updated:
 
 These define the station location, default movement assumptions, and the distance/ETA helpers used by the tracking API.
 
-The implementation uses a straight-line estimation model rather than road routing, matching the project’s existing map approach and keeping the logic simple and reliable for this app phase.
+The tracking API continues to calculate its distance and ETA estimates as straight-line values. The shared customer and rider map uses OSRM road routes and selects the shortest-distance candidate it receives. Before a rider accepts an order, the route runs from the HydroFind station to the customer; once accepted, it runs from the rider's live location to the customer and is refreshed as the rider moves.
 
 #### 2. Customer order-location update route
 
@@ -146,7 +146,7 @@ This returns:
 - ETA in minutes
 - server timestamp
 
-This endpoint is designed for front-end polling and is used by the app tracking hooks.
+This endpoint is designed for front-end polling and is used by the app tracking hooks. Map tracking polls once per second; the rider location watcher samples at that cadence and the server enforces a one-second minimum between accepted location writes.
 
 #### 5. Route ordering was fixed
 

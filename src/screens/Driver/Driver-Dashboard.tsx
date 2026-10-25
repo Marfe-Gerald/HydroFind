@@ -1,5 +1,3 @@
-// src/Screens/HomeScreen.tsx
-
 import React from 'react';
 import {
   View,
@@ -13,7 +11,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors, spacing, radius } from '../Themes/colors';
-import { MOCK_ORDERS } from '../Data/MockOrders';
 import StatusBadge from '../Components/StatusBadge';
 import type { Order } from '../Types/Orders';
 
@@ -40,7 +37,7 @@ const DRIVER_ACTIONS: QuickAction[] = [
 
 interface HomeScreenProps {
   role?: Role;
-  orders?: Order[];
+  orders: Order[];
   navigation?: {
     navigate: (screen: string, params?: { id: string }) => void;
   };
@@ -48,7 +45,7 @@ interface HomeScreenProps {
 
 export default function HomeScreen({
   role = 'driver',
-  orders = MOCK_ORDERS,
+  orders,
   navigation,
 }: HomeScreenProps) {
   const isDriver = role === 'driver';

@@ -9,7 +9,14 @@ export default function DriverHomeContainer({ navigation }: any) {
   const assigned = useOrders(() => getAssignedOrders(), 15000);
   const history = useOrders(() => getHistory(), 30000);
 
-  const combined = [...pending.orders, ...assigned.orders, ...history.orders]
+  const combined = Array.from(
+    new Map(
+      [...pending.orders, ...assigned.orders, ...history.orders].map((order: any) => [
+        order.id,
+        order,
+      ] as const),
+    ).values(),
+  )
     .slice(0, 12)
     .map((o: any) => toUiOrder(o));
 

@@ -1,4 +1,4 @@
-// src/Screens/Types/Orders.ts
+// src/screens/Types/Orders.ts
 
 export type OrderStatus = 'Pending' | 'On the Way' | 'Delivered' | 'Cancelled';
 

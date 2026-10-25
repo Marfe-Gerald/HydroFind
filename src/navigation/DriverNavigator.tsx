@@ -35,7 +35,7 @@ function DriverTabs() {
       <Tab.Screen name="ViewOrders">
         {(props) => <OrdersListScreen {...props} role="rider" />}
       </Tab.Screen>
-      <Tab.Screen name="MapView" component={MapContainer} />
+      <Tab.Screen name="MapView">{(props) => <MapContainer {...props} role="rider" />}</Tab.Screen>
       <Tab.Screen name="History">
         {(props) => <HistoryScreen {...props} role="rider" />}
       </Tab.Screen>
@@ -47,7 +47,9 @@ export default function DriverNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={DriverTabs} />
-      <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+      <Stack.Screen name="OrderDetails">
+        {(props) => <OrderDetailsScreen {...props} role="rider" />}
+      </Stack.Screen>
       <Stack.Screen name="DevLocation" component={DevLocationTestScreen} />
     </Stack.Navigator>
   );

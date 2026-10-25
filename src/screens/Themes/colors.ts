@@ -16,7 +16,7 @@ export const COLORS = {
   iconColor: '#95A1B0',
   inputBorder: '#E2E8F0',
   errorBackground: '#FFF1F1',
-// src/Screens/Themes/colors.ts
+// src/screens/Themes/colors.ts
 // HydroFind design tokens — based on the UI/UX Concept in the project proposal:
 // "Primary Colors: shades of blue and white (water/cleanliness), light gray
 // accent for backgrounds. Typography: clean sans-serif (Roboto/Poppins)."

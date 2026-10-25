@@ -1,4 +1,4 @@
-// src/Screens/Components/StatusBadge.tsx
+// src/screens/Components/StatusBadge.tsx
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
