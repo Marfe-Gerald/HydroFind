@@ -4,19 +4,23 @@
     "slug": "HydroFindApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/hydrofind-icon.svg",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.JMSoftware.HydroFind",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.JMSoftware.HydroFind",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/hydrofind-foreground.svg",
+        "backgroundImage": "./assets/hydrofind-background.svg",
+        "monochromeImage": "./assets/hydrofind-monochrome.svg"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -25,7 +29,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.svg"
     },
     "plugins": [
       "expo-status-bar",

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="64" height="64" role="img" aria-labelledby="title">
+  <title id="title">HydroFind</title>
+  <defs>
+    <linearGradient id="pinGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(0,-8)">
+    <path d="M100 178C70 150 38 116 38 78a62 62 0 0 1 124 0c0 38-32 72-62 100Z" fill="url(#pinGradient)"/>
+    <g transform="translate(0,-4)">
+      <path d="M100 46S74 76 74 94a26 26 0 0 0 52 0c0-18-26-48-26-48Z" fill="#fff"/>
+      <path d="M87 92c0 8 4 14 11 16" fill="none" stroke="#93c5fd" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+  <ellipse cx="100" cy="176" rx="30" ry="6" fill="none" stroke="#3b82f6" stroke-width="3" opacity=".55"/>
+  <ellipse cx="100" cy="184" rx="50" ry="9" fill="none" stroke="#3b82f6" stroke-width="3" opacity=".28"/>
+</svg>
