@@ -19,7 +19,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/hydrofind-foreground.png",
-        "backgroundImage": "./assets/hydrofind-background.png",
         "monochromeImage": "./assets/hydrofind-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
